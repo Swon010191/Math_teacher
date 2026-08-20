@@ -8,6 +8,10 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Activity hàm bậc nhất (linear function)**: API `/api/math/activity` tự chọn
+  loại activity theo loại biểu thức (bậc hai/bậc nhất); frontend thêm
+  LinearActivity - đồ thị đường thẳng (JSXGraph), slider hệ số a/b, nút hiện
+  giao điểm trục x, chuỗi bước giảng dạy, stats cắt trục y.
 - Công cụ **Di chuyển**: nhấn và kéo để dời bảng (bổ sung cho chuột giữa).
 - Đèn trạng thái **AI sẵn sàng / AI chưa kết nối** trên thanh công cụ: kiểm tra
   `/health` tự động mỗi 10 giây, giúp nhận biết ngay khi backend chưa chạy
@@ -44,6 +48,8 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - Thêm 1 test E2E cho công cụ Di chuyển (tổng 6 test E2E).
 - Thêm 2 test E2E cho luồng lỗi: công thức không xác định được vẫn thoát được
   (tổng 8 test E2E) + 4 test đơn vị mới cho RecognitionModal và MathInputBar.
+- Thêm activity hàm bậc nhất: 1 test backend, 3 test đơn vị LinearActivity,
+  1 test E2E (tổng backend 28, frontend 21, E2E 9).
 
 ### Sắp tới
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.

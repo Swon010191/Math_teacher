@@ -11,6 +11,7 @@ export interface ActivityMath {
   a?: number | null;
   b?: number | null;
   c?: number | null;
+  root?: number | null;
   vertex?: [number, number] | null;
   roots?: number[] | null;
   axis?: string | null;

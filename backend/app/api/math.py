@@ -6,7 +6,7 @@ from fastapi import APIRouter, HTTPException
 
 from app.schemas.activity import ActivityModel
 from app.schemas.math import MathAnalyzeRequest, MathAnalyzeResponse
-from app.services.activity_service import build_quadratic_activity
+from app.services.activity_service import build_activity
 from app.services.math_service import MathEngineError, analyze_expression
 
 router = APIRouter(prefix="/api/math", tags=["math"])
@@ -23,9 +23,9 @@ def analyze(request: MathAnalyzeRequest) -> MathAnalyzeResponse:
 
 @router.post("/activity", response_model=ActivityModel)
 def create_activity(request: MathAnalyzeRequest) -> ActivityModel:
-    """Tạo Activity hàm bậc hai (schemaVersion 1.0) từ biểu thức đã xác nhận."""
+    """Tạo Activity (hàm bậc hai hoặc bậc nhất) từ biểu thức đã xác nhận."""
     try:
-        return build_quadratic_activity(
+        return build_activity(
             latex=request.expression,
             expression=request.expression,
             confidence=1.0,

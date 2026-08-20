@@ -8,6 +8,7 @@ import {
 } from '../../api/client';
 import { clearBoard, loadBoard, saveBoard } from '../../api/storage';
 import { makeId, useAppStore } from '../../stores/appStore';
+import { LinearActivity } from '../activities/LinearActivity';
 import { QuadraticActivity } from '../activities/QuadraticActivity';
 import { MathInputBar } from '../math/MathInputBar';
 import { RecognitionModal } from '../recognition/RecognitionModal';
@@ -337,7 +338,11 @@ function ActivityFrame({
         </button>
       </div>
       {activity ? (
-        <QuadraticActivity activity={activity} />
+        activity.type === 'linear_function' ? (
+          <LinearActivity activity={activity} />
+        ) : (
+          <QuadraticActivity activity={activity} />
+        )
       ) : (
         <div className="activity-loading">Đang tải activity...</div>
       )}

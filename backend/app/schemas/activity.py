@@ -16,6 +16,7 @@ class ActivityMath(BaseModel):
     a: float | None = None
     b: float | None = None
     c: float | None = None
+    root: float | None = None
     vertex: list[float] | None = None
     roots: list[float] | None = None
     axis: str | None = None

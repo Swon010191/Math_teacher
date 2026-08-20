@@ -13,6 +13,54 @@ from app.schemas.math import MathAnalyzeResponse
 from app.services.math_service import analyze_expression
 
 
+def build_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+) -> ActivityModel:
+    """Tạo Activity theo loại biểu thức (bậc hai hoặc bậc nhất - phạm vi MVP)."""
+    analysis = analyze_expression(expression)
+    if analysis.kind == "quadratic":
+        return build_quadratic_activity(latex, expression, confidence, confirmed)
+    if analysis.kind == "linear":
+        return build_linear_activity(latex, expression, confidence, confirmed)
+    raise ValueError("MVP hỗ trợ hàm bậc hai và hàm bậc nhất.")
+
+
+def build_linear_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+) -> ActivityModel:
+    """Tạo Activity hàm bậc nhất (schemaVersion 1.0) từ biểu thức đã xác nhận."""
+    analysis = analyze_expression(expression)
+    if analysis.kind != "linear" or analysis.linear is None:
+        raise ValueError("Activity hàm bậc nhất yêu cầu biểu thức bậc nhất hợp lệ.")
+    l = analysis.linear
+    return ActivityModel(
+        schemaVersion="1.0",
+        type="linear_function",
+        source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
+        math=ActivityMath(
+            expression=analysis.normalized_expression,
+            a=l.a,
+            b=l.b,
+            y_intercept=l.y_intercept,
+            root=l.root,
+        ),
+        widgets=[
+            ActivityWidget(type="graph"),
+            ActivityWidget(type="parameter_slider", parameters=["a", "b"]),
+        ],
+        steps=[
+            ActivityStep(visible=["graph"]),
+            ActivityStep(visible=["graph", "root"]),
+        ],
+    )
+
+
 def build_quadratic_activity(
     latex: str,
     expression: str,

@@ -167,6 +167,21 @@ test('nhập công thức vô nghĩa bằng bàn phím: báo lỗi, không treo'
   await expect(page.getByPlaceholder('x^2 - 4x + 3')).not.toBeVisible();
 });
 
+test('nhập hàm bậc nhất bằng bàn phím tạo activity linear', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Công thức' }).click();
+  const input = page.getByPlaceholder('x^2 - 4x + 3');
+  await expect(input).toBeVisible();
+  await input.fill('2*x + 1');
+  await input.press('Enter');
+
+  await expect(page.getByTestId('linear-activity')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Hiện giao điểm trục x' })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Hệ số a' })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Hệ số b' })).toBeVisible();
+});
+
 test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyển theo', async ({ page }) => {
   await page.goto('/');
   const board = page.locator('.board-container');
