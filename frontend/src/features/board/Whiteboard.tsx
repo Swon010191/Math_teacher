@@ -2,14 +2,13 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
   analyzeExpression,
-  createQuadraticActivity,
+  createActivity,
   recognizeRegion,
   type ActivityModel,
 } from '../../api/client';
 import { clearBoard, loadBoard, saveBoard } from '../../api/storage';
 import { makeId, useAppStore } from '../../stores/appStore';
-import { LinearActivity } from '../activities/LinearActivity';
-import { QuadraticActivity } from '../activities/QuadraticActivity';
+import { activityKindLabel, activityWidgetFor } from '../activities/activityRegistry';
 import { CopilotPanel } from '../copilot/CopilotPanel';
 import type { CopilotSuggestion } from '../copilot/copilotTypes';
 import { MathInputBar } from '../math/MathInputBar';
@@ -71,7 +70,7 @@ export function Whiteboard() {
   const handleConfirmExpression = useCallback(
     async (expression: string) => {
       try {
-        const activity = await createQuadraticActivity(expression);
+        const activity = await createActivity(expression);
         const activityId = makeId();
         upsertActivity(activityId, activity);
         const obj: ActivityObject = {
@@ -98,7 +97,7 @@ export function Whiteboard() {
       setMathInputOpen(false);
       try {
         const analysis = await analyzeExpression(raw);
-        const activity = await createQuadraticActivity(raw);
+        const activity = await createActivity(raw);
         const activityId = makeId();
         upsertActivity(activityId, activity);
         const center = {
@@ -114,7 +113,7 @@ export function Whiteboard() {
           width: 420,
           height: 340,
         } as ActivityObject);
-        showToast(`Đã phân tích ${analysis.kind === 'quadratic' ? 'hàm bậc hai' : analysis.kind}: ${activity.math.expression}`);
+        showToast(`Đã phân tích ${activityKindLabel(analysis.kind)}: ${activity.math.expression}`);
       } catch (error) {
         showToast(`Lỗi: ${(error as Error).message}`);
       }
@@ -346,6 +345,8 @@ function ActivityFrame({
     window.addEventListener('pointerup', up);
   };
 
+  const Widget = activity ? activityWidgetFor(activity.type) : null;
+
   return (
     <div
       className={`activity-frame${dragging ? ' dragging' : ''}${resizing ? ' resizing' : ''}${selected ? ' selected' : ''}`}
@@ -371,12 +372,8 @@ function ActivityFrame({
           ×
         </button>
       </div>
-      {activity ? (
-        activity.type === 'linear_function' ? (
-          <LinearActivity activity={activity} />
-        ) : (
-          <QuadraticActivity activity={activity} />
-        )
+      {activity && Widget ? (
+        <Widget activity={activity} />
       ) : (
         <div className="activity-loading">Đang tải activity...</div>
       )}

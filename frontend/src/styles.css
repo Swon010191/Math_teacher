@@ -345,9 +345,9 @@ body {
   border-radius: 0 0 6px 0;
 }
 
-/* ---------- Quadratic activity ---------- */
+/* ---------- Activity canvas (dùng chung cho mọi loại hàm) ---------- */
 
-.quadratic-activity {
+.activity-canvas {
   display: flex;
   flex-direction: column;
   flex: 1;

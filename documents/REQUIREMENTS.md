@@ -63,7 +63,8 @@ Tài liệu gốc chi tiết: [AI_Teaching_Assistant_Tong_Hop.txt](AI_Teaching_A
 
 - Teacher Copilot: giải thích, sinh câu hỏi, ví dụ, teaching sequence (local AI - Ollama).
 - Recognition thật: Ollama + LLaVA/Qwen-VL; Pix2Text cho Math OCR.
-- Các loại hàm: bậc nhất, phân thức, sin/cos, logarit, mũ; đạo hàm; hình học.
+- ~~Các loại hàm: bậc nhất, phân thức, sin/cos, logarit, mũ~~ -> đã có: bậc nhất,
+  phân thức, sin/cos, mũ, logarit (Phase 2); còn lại: đạo hàm; hình học.
 - Open Activity Platform: plugin SDK, community library, fork/share.
 - E2E test (Playwright) hoàn chỉnh.
 

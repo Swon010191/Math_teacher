@@ -13,6 +13,9 @@ export interface ActivityMath {
   a?: number | null;
   b?: number | null;
   c?: number | null;
+  d?: number | null;
+  func?: 'sin' | 'cos' | null;
+  base?: number | null;
   root?: number | null;
   vertex?: [number, number] | null;
   roots?: number[] | null;
@@ -20,6 +23,14 @@ export interface ActivityMath {
   y_intercept?: number | null;
   discriminant?: number | null;
   direction?: 'up' | 'down' | null;
+  amplitude?: number | null;
+  period?: number | null;
+  phase_shift?: number | null;
+  midline?: number | null;
+  max_value?: number | null;
+  min_value?: number | null;
+  asymptotes?: string[] | null;
+  domain?: string | null;
 }
 
 export interface ActivityWidget {

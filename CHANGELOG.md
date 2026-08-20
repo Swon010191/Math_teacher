@@ -8,6 +8,19 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Mở rộng Math Engine thêm 4 loại hàm**: hàm phân thức `(ax+b)/(cx+d)`,
+  lượng giác `a*sin(bx+c)+d` / `a*cos(bx+c)+d`, mũ `a*b^x+c` và logarit
+  `a*log(x,base)+c`. API `/api/math/analyze` trả thêm `RationalFeatures`,
+  `TrigFeatures`, `ExponentialFeatures`, `LogarithmicFeatures`; `/api/math/activity`
+  tạo activity loại `rational_function` / `trig_function` /
+  `exponential_function` / `logarithmic_function` kèm chuỗi bước giảng dạy
+  (tiệm cận, đường trung bình, nghiệm...). Biểu thức ngoài chuẩn tắc
+  (`tan(x)`, tích các hàm...) báo lỗi rõ ràng thay vì sinh activity sai.
+- **Frontend: shell `ActivityCanvas` dùng chung cho mọi activity**: nút hiện/ẩn
+  đặc trưng (tiệm cận đứng/ngang, nghiệm, đường trung bình, max/min...), slider
+  hệ số, điều hướng bước giảng dạy, công thức KaTeX; 4 widget mới
+  (phân thức, lượng giác, mũ, logarit) đăng ký qua `activityRegistry`.
+  Slider giữ giá trị hợp lệ (chống chia 0, log x≤0, cơ số ≤0, |b|→0).
 - **Kiểm tra khả dụng provider nhận dạng**: popover "AI sẵn sàng" hiển thị
   trạng thái từng provider (✓ khả dụng / ✗ chưa khả dụng kèm hướng dẫn cài đặt
   Ollama/Pix2Text) + nút "Kiểm tra lại"; API mới GET

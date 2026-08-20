@@ -185,6 +185,34 @@ test('nhập hàm bậc nhất bằng bàn phím tạo activity linear', async (
   await expect(page.getByRole('slider', { name: 'Hệ số b' })).toBeVisible();
 });
 
+test('nhập hàm lượng giác bằng bàn phím tạo activity trig', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Công thức' }).click();
+  const input = page.getByPlaceholder('x^2 - 4x + 3');
+  await expect(input).toBeVisible();
+  await input.fill('2*sin(x) + 1');
+  await input.press('Enter');
+
+  await expect(page.getByTestId('trig-activity')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Hiện đường trung bình' })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Hệ số d' })).toBeVisible();
+});
+
+test('nhập hàm phân thức bằng bàn phím tạo activity rational', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Công thức' }).click();
+  const input = page.getByPlaceholder('x^2 - 4x + 3');
+  await expect(input).toBeVisible();
+  await input.fill('(2*x + 1)/(x - 1)');
+  await input.press('Enter');
+
+  await expect(page.getByTestId('rational-activity')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByRole('button', { name: 'Hiện tiệm cận đứng' })).toBeVisible();
+  await expect(page.getByRole('slider', { name: 'Hệ số d' })).toBeVisible();
+});
+
 test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyển theo', async ({ page }) => {
   await page.goto('/');
   const board = page.locator('.board-container');

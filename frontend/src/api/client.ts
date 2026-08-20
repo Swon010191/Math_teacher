@@ -96,12 +96,77 @@ export interface QuadraticFeatures {
   sample_points: number[][];
 }
 
+export interface RationalFeatures {
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  poles: number[];
+  vertical_asymptotes: string[];
+  horizontal_asymptote: string | null;
+  root: number | null;
+  y_intercept: number | null;
+  domain: string;
+  sample_points: number[][];
+}
+
+export interface TrigFeatures {
+  func: 'sin' | 'cos';
+  a: number;
+  b: number;
+  c: number;
+  d: number;
+  amplitude: number;
+  period: number;
+  phase_shift: number;
+  midline: number;
+  max_value: number;
+  min_value: number;
+  roots: number[];
+  sample_points: number[][];
+}
+
+export interface ExponentialFeatures {
+  a: number;
+  b: number;
+  c: number;
+  base: number;
+  direction: 'up' | 'down';
+  horizontal_asymptote: string;
+  y_intercept: number;
+  x_intercept: number | null;
+  sample_points: number[][];
+}
+
+export interface LogarithmicFeatures {
+  a: number;
+  b: number;
+  c: number;
+  base: number;
+  domain: string;
+  vertical_asymptote: string;
+  x_intercept: number;
+  sample_points: number[][];
+}
+
 export interface MathAnalyzeResponse {
   expression: string;
   normalized_expression: string;
-  kind: 'quadratic' | 'linear' | 'unknown';
+  kind:
+    | 'quadratic'
+    | 'linear'
+    | 'rational'
+    | 'trigonometric'
+    | 'exponential'
+    | 'logarithmic'
+    | 'unknown';
   latex: string;
   quadratic?: QuadraticFeatures;
+  linear?: { a: number; b: number; root: number | null; y_intercept: number; sample_points: number[][] };
+  rational?: RationalFeatures;
+  trigonometric?: TrigFeatures;
+  exponential?: ExponentialFeatures;
+  logarithmic?: LogarithmicFeatures;
 }
 
 export interface RecognizeResult {
@@ -121,6 +186,9 @@ export interface ActivityModel {
     a?: number | null;
     b?: number | null;
     c?: number | null;
+    d?: number | null;
+    func?: 'sin' | 'cos' | null;
+    base?: number | null;
     root?: number | null;
     vertex?: [number, number] | null;
     roots?: number[] | null;
@@ -128,6 +196,14 @@ export interface ActivityModel {
     y_intercept?: number | null;
     discriminant?: number | null;
     direction?: 'up' | 'down' | null;
+    amplitude?: number | null;
+    period?: number | null;
+    phase_shift?: number | null;
+    midline?: number | null;
+    max_value?: number | null;
+    min_value?: number | null;
+    asymptotes?: string[] | null;
+    domain?: string | null;
   };
   widgets: { type: string; parameters?: string[] }[];
   steps: { visible: string[] }[];
@@ -143,7 +219,7 @@ export async function analyzeExpression(
   });
 }
 
-export async function createQuadraticActivity(
+export async function createActivity(
   expression: string,
 ): Promise<ActivityModel> {
   return request<ActivityModel>('/api/math/activity', {
