@@ -92,8 +92,10 @@ Thanh công cụ gồm 3 nhóm:
 
 > **Trạng thái AI:** góc phải thanh công cụ có đèn xanh/đỏ cho biết máy chủ AI
 > đã kết nối chưa. **Bấm vào "AI sẵn sàng"** để xem và đổi provider nhận dạng
-> đang dùng (Mock/Ollama Vision/Pix2Text) ngay trong lúc chạy. Khi đèn đỏ, hãy
-> khởi động backend: `uvicorn app.main:app --port 8000` (thư mục `backend/`).
+> đang dùng (Mock/Ollama Vision/Pix2Text) ngay trong lúc chạy. Popover còn hiển
+> thị **trạng thái khả dụng của từng provider** (✓ xanh / ✗ đỏ kèm hướng dẫn cài
+> đặt nếu chưa có) và nút **"Kiểm tra lại"** để ping lại các dịch vụ. Khi đèn đỏ,
+> hãy khởi động backend: `uvicorn app.main:app --port 8000` (thư mục `backend/`).
 
 **Recognition thật (tùy chọn):** mặc định dùng Mock (demo không cần cài gì).
 Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến môi trường trong
@@ -101,8 +103,8 @@ Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến mô
 
 | Provider | Cài đặt | Cấu hình |
 |---|---|---|
-| `ollama_vision` | `ollama pull llava` (hoặc Qwen-VL) | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
-| `pix2text` | `pip install pix2text` + `p2t serve` | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
+| `ollama_vision` | Cài [Ollama](https://ollama.com) rồi `ollama pull llava` (hoặc Qwen-VL); đảm bảo `ollama serve` đang chạy | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
+| `pix2text` | `pip install pix2text[serve]` rồi chạy `p2t serve` | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
 
 **Teacher Copilot:** mặc định dùng `rule_based` (nội dung sinh theo quy tắc,
 không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `ollama
@@ -150,11 +152,11 @@ pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
 ## Kiểm thử
 
 ```bash
-# Backend (53 test)
+# Backend (62 test)
 cd backend
 pytest
 
-# Frontend (32 test đơn vị)
+# Frontend (35 test đơn vị)
 cd frontend
 npm test
 

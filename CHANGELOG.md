@@ -8,6 +8,11 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Kiểm tra khả dụng provider nhận dạng**: popover "AI sẵn sàng" hiển thị
+  trạng thái từng provider (✓ khả dụng / ✗ chưa khả dụng kèm hướng dẫn cài đặt
+  Ollama/Pix2Text) + nút "Kiểm tra lại"; API mới GET
+  `/api/recognize/providers/status` (ping song song, không chạy trong poll định kỳ;
+  chọn provider chưa khả dụng sẽ hiện hướng dẫn cài đặt trong toast).
 - **Đổi nguồn gợi ý Copilot ngay trên giao diện**: panel "Trợ lý giảng dạy"
   thêm dropdown chọn `rule_based` (gợi ý có sẵn, không cần AI) / `ollama` (AI
   local) - API mới GET/PUT `/api/copilot/provider`, đổi lúc chạy, restart trở về
@@ -83,6 +88,8 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
   E2E 11.
 - Thêm đổi provider Copilot runtime: 4 test backend + 2 test CopilotPanel -
   tổng backend 53, frontend 32.
+- Thêm kiểm tra khả dụng provider nhận dạng: 9 test backend (8 unit diagnostics
+  + 1 API status) + 3 test Toolbar - tổng backend 62, frontend 35, E2E 11.
 
 ### Sắp tới
 - Teacher Copilot nâng cao: chọn cấp học, custom model/LLM provider.

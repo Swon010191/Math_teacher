@@ -6,6 +6,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
 from app.schemas.recognition import RecognizeRequest, RecognizeResult
+from app.services.recognition_diagnostics import ProviderAvailability, check_all
 from app.services.recognition_service import recognize
 from app.services.recognition_settings import (
     AVAILABLE_PROVIDERS,
@@ -63,3 +64,27 @@ def change_provider(request: SetProviderRequest) -> ProviderState:
         provider=get_active_provider(),
         available=list(AVAILABLE_PROVIDERS),
     )
+
+
+class ProviderStatus(BaseModel):
+    """Kết quả kiểm tra khả dụng của một provider nhận dạng."""
+
+    provider: str
+    available: bool
+    detail: str
+
+
+@router.get("/providers/status", response_model=list[ProviderStatus])
+def get_providers_status() -> list[ProviderStatus]:
+    """Trạng thái khả dụng của từng provider (ping dịch vụ ngoài).
+
+    Chỉ gọi khi mở popover / bấm "Kiểm tra lại" - không dùng trong poll định kỳ.
+    """
+    return [
+        ProviderStatus(
+            provider=item.provider,
+            available=item.available,
+            detail=item.detail,
+        )
+        for item in check_all()
+    ]

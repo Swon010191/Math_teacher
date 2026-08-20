@@ -146,7 +146,7 @@ body {
   position: absolute;
   right: 0;
   top: calc(100% + 6px);
-  width: 260px;
+  width: 330px;
   background: #fff;
   border: 1px solid #e5e7eb;
   border-radius: 8px;
@@ -182,11 +182,15 @@ body {
 
 .backend-popover-option {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 8px;
   font-size: 13px;
   cursor: pointer;
   color: #111827;
+}
+
+.backend-popover-option input {
+  margin-top: 3px;
 }
 
 .backend-popover-option input:disabled {
@@ -195,6 +199,49 @@ body {
 
 .backend-popover-option:has(input:disabled) {
   color: #9ca3af;
+}
+
+.backend-popover-option-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.backend-provider-status {
+  display: flex;
+  align-items: flex-start;
+  gap: 5px;
+  font-size: 11px;
+  color: #6b7280;
+  line-height: 1.35;
+}
+
+.backend-provider-status .dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 3px;
+}
+
+.backend-provider-status.ok .dot {
+  background: #16a34a;
+}
+
+.backend-provider-status.bad .dot {
+  background: #ef4444;
+}
+
+.backend-popover-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 8px;
+}
+
+.backend-popover-actions .tool-btn {
+  font-size: 12px;
+  padding: 4px 10px;
 }
 
 .backend-popover-note {

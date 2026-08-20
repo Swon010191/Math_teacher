@@ -166,6 +166,25 @@ class TestRecognizeProvider:
         assert "ollama_vision" in response.json()["detail"]
 
 
+class TestProvidersStatus:
+    def test_status_mock_san_sang_provider_that_chet(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:1")
+        monkeypatch.setenv("PIX2TEXT_URL", "http://127.0.0.1:1")
+        response = client.get("/api/recognize/providers/status")
+        assert response.status_code == 200
+        data = response.json()
+        assert len(data) == 3
+        by_name = {item["provider"]: item for item in data}
+        assert by_name["mock"]["available"] is True
+        assert "Giả lập" in by_name["mock"]["detail"]
+        assert by_name["ollama_vision"]["available"] is False
+        assert "ollama serve" in by_name["ollama_vision"]["detail"]
+        assert by_name["pix2text"]["available"] is False
+        assert "p2t serve" in by_name["pix2text"]["detail"]
+
+
 class TestMathAnalyze:
     def test_analyze_quadratic(self, client: TestClient) -> None:
         response = client.post(

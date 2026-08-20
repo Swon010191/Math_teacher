@@ -219,7 +219,9 @@ test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyể
   await expect(page.locator('.toast')).toContainText('Đã xóa 1 đối tượng');
 });
 
-test('bấm vào "AI sẵn sàng": xem và đổi provider nhận dạng qua popover', async ({ page }) => {
+test('bấm vào "AI sẵn sàng": xem trạng thái provider và đổi provider nhận dạng', async ({
+  page,
+}) => {
   await page.goto('/');
   const statusBtn = page.getByRole('button', { name: /Trạng thái máy chủ AI/ });
   await expect(statusBtn).toContainText('AI sẵn sàng');
@@ -228,9 +230,22 @@ test('bấm vào "AI sẵn sàng": xem và đổi provider nhận dạng qua pop
   await expect(page.getByText('Provider đang dùng:')).toBeVisible();
   await expect(page.getByLabel('Mock (giả lập)')).toBeChecked();
 
+  await expect(page.locator('.backend-provider-status')).toHaveCount(3, { timeout: 15_000 });
+  await expect(
+    page.getByText('Khả dụng — Giả lập, không cần kết nối'),
+  ).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByText(/Chưa khả dụng — Chưa kết nối được Pix2Text/),
+  ).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: 'Kiểm tra lại' }).click();
+  await expect(page.locator('.backend-provider-status')).toHaveCount(3, {
+    timeout: 15_000,
+  });
+
   await page.getByLabel('Ollama Vision (AI thật)').click();
   await expect(page.locator('.toast')).toContainText(
-    'Đã chuyển sang provider: Ollama Vision',
+    /Đã chuyển sang provider: Ollama Vision|Provider chưa khả dụng/,
     { timeout: 15_000 },
   );
 

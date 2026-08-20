@@ -11,6 +11,7 @@ from app.providers.ollama_vision import OllamaVisionProvider
 from app.providers.pix2text import Pix2TextProvider
 from app.providers.rule_based_copilot import RuleBasedCopilotProvider
 from app.schemas.copilot import CopilotRequest, CopilotMathInput
+from app.services.recognition_diagnostics import check_all, check_provider_availability
 
 
 def _quadratic_request() -> CopilotRequest:
@@ -187,3 +188,74 @@ class TestOllamaCopilot:
         )
         with pytest.raises(RuntimeError, match="Ollama"):
             provider.suggest(_quadratic_request())
+
+
+class TestRecognitionDiagnostics:
+    """Kiểm tra khả dụng provider qua ping dịch vụ ngoài (HTTP mock)."""
+
+    def test_mock_luon_san_sang(self) -> None:
+        result = check_provider_availability("mock")
+        assert result.available is True
+        assert "Giả lập" in result.detail
+
+    def test_ollama_server_chet(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        result = check_provider_availability("ollama_vision", http_client=client)
+        assert result.available is False
+        assert "ollama serve" in result.detail
+
+    def test_ollama_chay_nhung_thieu_model(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"models": [{"name": "llama3.2"}]})
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        result = check_provider_availability("ollama_vision", http_client=client)
+        assert result.available is True
+        assert "ollama pull llava" in result.detail
+
+    def test_ollama_du_model(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"models": [{"name": "llava:latest"}]})
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        result = check_provider_availability("ollama_vision", http_client=client)
+        assert result.available is True
+        assert "sẵn sàng" in result.detail
+
+    def test_pix2text_chet(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        result = check_provider_availability("pix2text", http_client=client)
+        assert result.available is False
+        assert "p2t serve" in result.detail
+
+    def test_pix2text_song(self) -> None:
+        client = httpx.Client(
+            transport=httpx.MockTransport(
+                lambda request: httpx.Response(200, text="<html>p2t</html>")
+            )
+        )
+        result = check_provider_availability("pix2text", http_client=client)
+        assert result.available is True
+        assert "sẵn sàng" in result.detail
+
+    def test_provider_khong_xac_dinh(self) -> None:
+        result = check_provider_availability("spam")
+        assert result.available is False
+        assert "không xác định" in result.detail
+
+    def test_check_all_du_3_provider(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        results = check_all(http_client=client)
+        assert [r.provider for r in results] == ["mock", "ollama_vision", "pix2text"]
+        assert results[0].available is True
+        assert results[1].available is False
+        assert results[2].available is False

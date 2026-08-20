@@ -55,6 +55,16 @@ export async function getRecognitionProvider(): Promise<ProviderState> {
   return request<ProviderState>('/api/recognize/provider');
 }
 
+export interface ProviderStatus {
+  provider: string;
+  available: boolean;
+  detail: string;
+}
+
+export async function getRecognitionProviderStatus(): Promise<ProviderStatus[]> {
+  return request<ProviderStatus[]>('/api/recognize/providers/status');
+}
+
 export async function setRecognitionProvider(
   provider: string,
 ): Promise<ProviderState> {

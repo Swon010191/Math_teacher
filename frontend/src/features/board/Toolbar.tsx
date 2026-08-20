@@ -3,8 +3,10 @@ import { useEffect, useRef, useState } from 'react';
 import {
   checkHealth,
   getRecognitionProvider,
+  getRecognitionProviderStatus,
   setRecognitionProvider,
   type HealthInfo,
+  type ProviderStatus,
 } from '../../api/client';
 import { useAppStore } from '../../stores/appStore';
 import type { Tool } from './types';
@@ -41,6 +43,8 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
   const showToast = useAppStore((s) => s.showToast);
   const [health, setHealth] = useState<HealthInfo | null>(null);
   const [providerList, setProviderList] = useState<string[]>(DEFAULT_PROVIDERS);
+  const [providerStatus, setProviderStatus] = useState<ProviderStatus[]>([]);
+  const [checkingStatus, setCheckingStatus] = useState(false);
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -93,6 +97,23 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
 
   const connected = health?.connected ?? false;
 
+  const refreshStatus = async () => {
+    if (!connected) return;
+    setCheckingStatus(true);
+    try {
+      const status = await getRecognitionProviderStatus();
+      setProviderStatus(status);
+    } catch {
+      setProviderStatus([]);
+    } finally {
+      setCheckingStatus(false);
+    }
+  };
+
+  useEffect(() => {
+    if (popoverOpen) void refreshStatus();
+  }, [popoverOpen]);
+
   const changeProvider = async (name: string) => {
     if (!connected || name === health?.provider || switching) return;
     setSwitching(true);
@@ -100,7 +121,14 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
       const state = await setRecognitionProvider(name);
       setHealth((prev) => (prev ? { ...prev, provider: state.provider } : prev));
       setPopoverOpen(false);
-      showToast(`Đã chuyển sang provider: ${PROVIDER_LABELS[state.provider] ?? state.provider}`);
+      const status = providerStatus.find((s) => s.provider === state.provider);
+      if (status && !status.available) {
+        showToast(`Provider chưa khả dụng: ${status.detail}`);
+      } else {
+        showToast(
+          `Đã chuyển sang provider: ${PROVIDER_LABELS[state.provider] ?? state.provider}`,
+        );
+      }
     } catch (err) {
       showToast(err instanceof Error ? err.message : 'Không đổi được provider');
     } finally {
@@ -172,19 +200,45 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
             </div>
             <div className="backend-popover-label">Provider đang dùng:</div>
             <div className="backend-popover-options" role="radiogroup" aria-label="Chọn provider nhận dạng">
-              {providerList.map((name) => (
-                <label key={name} className="backend-popover-option">
-                  <input
-                    type="radio"
-                    name="recognition-provider"
-                    value={name}
-                    checked={health?.provider === name}
-                    disabled={!connected || switching}
-                    onChange={() => changeProvider(name)}
-                  />
-                  <span>{PROVIDER_LABELS[name] ?? name}</span>
-                </label>
-              ))}
+              {providerList.map((name) => {
+                const status = providerStatus.find((s) => s.provider === name);
+                return (
+                  <label key={name} className="backend-popover-option">
+                    <input
+                      type="radio"
+                      name="recognition-provider"
+                      value={name}
+                      checked={health?.provider === name}
+                      disabled={!connected || switching}
+                      onChange={() => changeProvider(name)}
+                    />
+                    <span className="backend-popover-option-main">
+                      <span>{PROVIDER_LABELS[name] ?? name}</span>
+                      {status && (
+                        <span
+                          className={`backend-provider-status ${
+                            status.available ? 'ok' : 'bad'
+                          }`}
+                          title={status.detail}
+                        >
+                          <span className="dot" />
+                          {status.available ? 'Khả dụng' : 'Chưa khả dụng'} — {status.detail}
+                        </span>
+                      )}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <div className="backend-popover-actions">
+              <button
+                className="tool-btn"
+                onClick={() => void refreshStatus()}
+                disabled={!connected || checkingStatus}
+                title="Kiểm tra lại trạng thái của từng provider"
+              >
+                {checkingStatus ? 'Đang kiểm tra...' : 'Kiểm tra lại'}
+              </button>
             </div>
             <div className="backend-popover-note">
               Đổi trong lúc chạy; khởi động lại backend sẽ trở về provider trong .env
