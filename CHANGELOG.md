@@ -8,6 +8,12 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- Công cụ **Di chuyển**: nhấn và kéo để dời bảng (bổ sung cho chuột giữa).
+- Đèn trạng thái **AI sẵn sàng / AI chưa kết nối** trên thanh công cụ: kiểm tra
+  `/health` tự động mỗi 10 giây, giúp nhận biết ngay khi backend chưa chạy
+  (nguyên nhân lỗi "failed to fetch").
+- API client gọi qua cùng origin (proxy Vite `/api`), hết phụ thuộc CORS; báo
+  lỗi rõ ràng khi không kết nối được máy chủ AI.
 - Backend Math Engine (FastAPI + SymPy): phân tích biểu thức, tính đỉnh/nghiệm/
   trục đối xứng/giao điểm trục, sinh điểm mẫu đồ thị; 27 test.
 - Backend Recognition Service với MockRecognitionProvider (Stage 1), kiến trúc
@@ -31,6 +37,7 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - Chọn nhiều đối tượng cùng lúc và kéo di chuyển cả nhóm; activity cũng được
   khoanh vùng chọn và hiển thị viền xanh khi được chọn.
 - Thêm 2 test E2E cho khoanh vùng Chọn và Xóa (tổng 5 test E2E).
+- Thêm 1 test E2E cho công cụ Di chuyển (tổng 6 test E2E).
 
 ### Sắp tới
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.

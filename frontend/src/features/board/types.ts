@@ -32,7 +32,7 @@ export interface ActivityObject {
 
 export type BoardObject = StrokeObject | TextObject | ActivityObject;
 
-export type Tool = 'select' | 'pen' | 'text' | 'erase' | 'ai';
+export type Tool = 'pan' | 'select' | 'pen' | 'text' | 'erase' | 'ai';
 
 export interface Viewport {
   x: number;

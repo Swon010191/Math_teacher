@@ -134,6 +134,12 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       const board = getPointerBoard();
       clickTargetId.current = e.target.id() || null;
 
+      if (tool === 'pan') {
+        setPanning(true);
+        dragStart.current = { x: e.evt.clientX, y: e.evt.clientY };
+        return;
+      }
+
       if (tool === 'pen') {
         setDrawing([board.x, board.y]);
         return;
@@ -257,7 +263,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       onMouseMove={onMouseMove}
       onMouseUp={onMouseUp}
       onMouseLeave={onMouseUp}
-      style={{ cursor: tool === 'pen' ? 'crosshair' : tool === 'select' ? 'default' : 'pointer' }}
+      style={{ cursor: tool === 'pen' ? 'crosshair' : tool === 'select' ? 'default' : tool === 'pan' ? 'move' : 'pointer' }}
       x={viewport.x}
       y={viewport.y}
       scaleX={viewport.scale}

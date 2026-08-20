@@ -73,7 +73,8 @@ Thanh công cụ gồm 3 nhóm:
 
 | Nhóm | Nút | Chức năng |
 |---|---|---|
-| Công cụ vẽ | **Chọn** | **Khoanh vùng** để chọn nhiều đối tượng, rồi kéo để di chuyển cùng nhau; bấm vào đối tượng để chọn 1 |
+| Công cụ vẽ | **Di chuyển** | Nhấn và kéo để dời bảng sang vị trí khác (hoặc giữ chuột giữa ở mọi chế độ) |
+| | **Chọn** | **Khoanh vùng** để chọn nhiều đối tượng, rồi kéo để di chuyển cùng nhau; bấm vào đối tượng để chọn 1 |
 | | **Bút** | Vẽ nét tự do bằng chuột/stylus |
 | | **Text** | Thêm chữ vào bảng (bấm vào vị trí muốn đặt) |
 | | **AI** | Khoanh vùng nét vẽ để nhận dạng công thức |
@@ -83,8 +84,12 @@ Thanh công cụ gồm 3 nhóm:
 | Dữ liệu | **Xuất / Nhập JSON** | Sao lưu, chia sẻ hoặc phục hồi toàn bộ bảng |
 | | **Xóa bảng** | Xóa toàn bộ nội dung bảng |
 
-**Thao tác chung:** lăn chuột để phóng to/thu nhỏ · giữ chuột giữa (hoặc kéo
-vùng trống ở chế độ Chọn) để di chuyển bảng.
+**Thao tác chung:** lăn chuột để phóng to/thu nhỏ · **Di chuyển** để kéo dời bảng
+(hoặc giữ chuột giữa ở mọi chế độ).
+
+> **Trạng thái AI:** góc phải thanh công cụ có đèn xanh/đỏ cho biết máy chủ AI
+> đã kết nối chưa. Khi đèn đỏ, hãy khởi động backend:
+> `uvicorn app.main:app --port 8000` (thư mục `backend/`).
 
 > **Chọn / Xóa theo khoanh vùng:** không cần bấm trúng đối tượng — chỉ cần kéo
 > một khung bao quanh vùng muốn chọn hoặc muốn xóa. Kết quả hiển thị ngay.

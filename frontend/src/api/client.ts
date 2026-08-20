@@ -1,12 +1,19 @@
 /** Client gọi backend Math Engine (FastAPI). */
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000';
+const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${BASE_URL}${path}`, {
-    headers: { 'Content-Type': 'application/json' },
-    ...init,
-  });
+  let response: Response;
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      headers: { 'Content-Type': 'application/json' },
+      ...init,
+    });
+  } catch {
+    throw new Error(
+      'Không kết nối được máy chủ AI. Vui lòng khởi động backend: uvicorn app.main:app --port 8000',
+    );
+  }
   if (!response.ok) {
     let detail = `Lỗi ${response.status}`;
     try {
@@ -18,6 +25,15 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
     throw new Error(detail);
   }
   return (await response.json()) as T;
+}
+
+export async function checkHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(`${BASE_URL}/health`);
+    return response.ok;
+  } catch {
+    return false;
+  }
 }
 
 export interface QuadraticFeatures {
