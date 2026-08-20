@@ -1,13 +1,32 @@
-"""API Teacher Copilot - đề xuất nội dung sư phạm cho Activity đã xác nhận."""
+"""API Teacher Copilot - đề xuất nội dung sư phạm + quản lý provider."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from app.schemas.copilot import CopilotRequest, CopilotSuggestion
 from app.services.copilot_service import suggest
+from app.services.copilot_settings import (
+    AVAILABLE_COPILOT_PROVIDERS,
+    get_active_copilot_provider,
+    set_active_copilot_provider,
+)
 
 router = APIRouter(prefix="/api/copilot", tags=["copilot"])
+
+
+class CopilotProviderState(BaseModel):
+    """Trạng thái provider Copilot hiện tại."""
+
+    provider: str
+    available: list[str]
+
+
+class SetCopilotProviderRequest(BaseModel):
+    """Yêu cầu đổi provider Copilot."""
+
+    provider: str
 
 
 @router.post("/suggest", response_model=CopilotSuggestion)
@@ -22,3 +41,25 @@ def suggest_content(request: CopilotRequest) -> CopilotSuggestion:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - lỗi provider
         raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+
+@router.get("/provider", response_model=CopilotProviderState)
+def get_copilot_provider_state() -> CopilotProviderState:
+    """Provider Copilot đang dùng và danh sách khả dụng."""
+    return CopilotProviderState(
+        provider=get_active_copilot_provider(),
+        available=list(AVAILABLE_COPILOT_PROVIDERS),
+    )
+
+
+@router.put("/provider", response_model=CopilotProviderState)
+def change_copilot_provider(request: SetCopilotProviderRequest) -> CopilotProviderState:
+    """Đổi provider Copilot trong lúc chạy (restart sẽ trở về .env)."""
+    try:
+        set_active_copilot_provider(request.provider)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return CopilotProviderState(
+        provider=get_active_copilot_provider(),
+        available=list(AVAILABLE_COPILOT_PROVIDERS),
+    )

@@ -1,12 +1,19 @@
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { suggestCopilot } from '../src/api/client';
+import {
+  getCopilotProvider,
+  setCopilotProvider,
+  suggestCopilot,
+} from '../src/api/client';
 import { CopilotPanel } from '../src/features/copilot/CopilotPanel';
 import type { CopilotSuggestion } from '../src/features/copilot/copilotTypes';
 import type { ActivityModel } from '../src/features/activities/activityTypes';
+import { useAppStore } from '../src/stores/appStore';
 
 vi.mock('../src/api/client', () => ({
+  getCopilotProvider: vi.fn(),
+  setCopilotProvider: vi.fn(),
   suggestCopilot: vi.fn(),
 }));
 
@@ -45,6 +52,14 @@ function makeActivity(copilot?: CopilotSuggestion): ActivityModel {
 beforeEach(() => {
   vi.clearAllMocks();
   vi.mocked(suggestCopilot).mockResolvedValue(SUGGESTION);
+  vi.mocked(getCopilotProvider).mockResolvedValue({
+    provider: 'rule_based',
+    available: ['rule_based', 'ollama'],
+  });
+  vi.mocked(setCopilotProvider).mockResolvedValue({
+    provider: 'ollama',
+    available: ['rule_based', 'ollama'],
+  });
 });
 
 describe('CopilotPanel', () => {
@@ -100,5 +115,32 @@ describe('CopilotPanel', () => {
     expect(await screen.findByText('Không kết nối được Ollama')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Đóng' }));
     expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('dropdown hiển thị nguồn gợi ý đang dùng', async () => {
+    render(
+      <CopilotPanel open activity={makeActivity()} onClose={vi.fn()} onApprove={vi.fn()} />,
+    );
+
+    const select = await screen.findByLabelText('Nguồn gợi ý');
+    expect(select).toHaveValue('rule_based');
+    await waitFor(() => expect(getCopilotProvider).toHaveBeenCalledTimes(1));
+  });
+
+  it('đổi nguồn gợi ý: gọi API đổi provider, toast xác nhận và tải lại gợi ý', async () => {
+    render(
+      <CopilotPanel open activity={makeActivity()} onClose={vi.fn()} onApprove={vi.fn()} />,
+    );
+
+    const select = await screen.findByLabelText('Nguồn gợi ý');
+    fireEvent.change(select, { target: { value: 'ollama' } });
+
+    await waitFor(() => {
+      expect(setCopilotProvider).toHaveBeenCalledWith('ollama');
+    });
+    expect(useAppStore.getState().toast).toBe('Đã chuyển nguồn gợi ý: Ollama (AI local)');
+    await waitFor(() => {
+      expect(suggestCopilot).toHaveBeenCalledTimes(2);
+    });
   });
 });

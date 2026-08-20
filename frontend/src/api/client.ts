@@ -145,6 +145,7 @@ export async function recognizeRegion(
 
 export async function suggestCopilot(
   activity: ActivityModel,
+  gradeLevel = 'THCS',
 ): Promise<CopilotSuggestion> {
   return request<CopilotSuggestion>('/api/copilot/suggest', {
     method: 'POST',
@@ -152,7 +153,25 @@ export async function suggestCopilot(
       expression: activity.math.expression,
       activity_type: activity.type,
       math: activity.math,
-      grade_level: 'THCS',
+      grade_level: gradeLevel,
     }),
+  });
+}
+
+export interface CopilotProviderState {
+  provider: string;
+  available: string[];
+}
+
+export async function getCopilotProvider(): Promise<CopilotProviderState> {
+  return request<CopilotProviderState>('/api/copilot/provider');
+}
+
+export async function setCopilotProvider(
+  provider: string,
+): Promise<CopilotProviderState> {
+  return request<CopilotProviderState>('/api/copilot/provider', {
+    method: 'PUT',
+    body: JSON.stringify({ provider }),
   });
 }

@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import copilot, math, recognize
-from app.services.copilot_service import get_active_copilot_provider
+from app.services.copilot_settings import get_active_copilot_provider
 from app.services.recognition_settings import get_active_provider
 
 app = FastAPI(

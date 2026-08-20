@@ -109,9 +109,10 @@ không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `o
 pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
 `OLLAMA_MODEL_COPILOT`) trong `backend/.env`.
 
-> **Trình tự gợi ý giảng dạy:** mở activity → bấm **💡 Gợi ý** → xem đề xuất
-> (nội dung chỉ là gợi ý, số liệu đến từ Math Engine) → bấm **Đưa lên bảng** để
-> duyệt; gợi ý xuất hiện ngay trong activity và được lưu cùng bảng.
+> **Trình tự gợi ý giảng dạy:** mở activity → bấm **💡 Gợi ý** → chọn **Nguồn
+> gợi ý** (Gợi ý có sẵn / Ollama AI local) nếu muốn đổi → xem đề xuất (chỉ là
+> gợi ý, số liệu đến từ Math Engine) → bấm **Đưa lên bảng** để duyệt; gợi ý
+> xuất hiện ngay trong activity và được lưu cùng bảng.
 
 > **Chọn / Xóa theo khoanh vùng:** không cần bấm trúng đối tượng — chỉ cần kéo
 > một khung bao quanh vùng muốn chọn hoặc muốn xóa. Kết quả hiển thị ngay.
@@ -149,11 +150,11 @@ pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
 ## Kiểm thử
 
 ```bash
-# Backend (49 test)
+# Backend (53 test)
 cd backend
 pytest
 
-# Frontend (30 test đơn vị)
+# Frontend (32 test đơn vị)
 cd frontend
 npm test
 

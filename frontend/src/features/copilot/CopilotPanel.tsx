@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
 
-import { suggestCopilot } from '../../api/client';
+import {
+  getCopilotProvider,
+  setCopilotProvider,
+  suggestCopilot,
+} from '../../api/client';
+import { useAppStore } from '../../stores/appStore';
 import type { ActivityModel } from '../activities/activityTypes';
 import type { CopilotSuggestion } from './copilotTypes';
 
@@ -11,15 +16,39 @@ interface CopilotPanelProps {
   onApprove: (suggestion: CopilotSuggestion) => void;
 }
 
+const DEFAULT_PROVIDERS = ['rule_based', 'ollama'];
+
 const PROVIDER_LABELS: Record<string, string> = {
   rule_based: 'Gợi ý có sẵn (không cần AI)',
   ollama: 'Ollama (AI local)',
 };
 
 export function CopilotPanel({ open, activity, onClose, onApprove }: CopilotPanelProps) {
+  const showToast = useAppStore((s) => s.showToast);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<CopilotSuggestion | null>(null);
+  const [activeProvider, setActiveProvider] = useState<string | null>(null);
+  const [availableProviders, setAvailableProviders] = useState<string[]>(DEFAULT_PROVIDERS);
+  const [switching, setSwitching] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    if (!open) return;
+    let alive = true;
+    getCopilotProvider()
+      .then((state) => {
+        if (!alive) return;
+        setActiveProvider(state.provider);
+        setAvailableProviders(state.available.length ? state.available : DEFAULT_PROVIDERS);
+      })
+      .catch(() => {
+        /* backend chưa kết nối - giữ lựa chọn mặc định */
+      });
+    return () => {
+      alive = false;
+    };
+  }, [open]);
 
   useEffect(() => {
     if (!open || !activity) return;
@@ -46,11 +75,27 @@ export function CopilotPanel({ open, activity, onClose, onApprove }: CopilotPane
     return () => {
       alive = false;
     };
-  }, [open, activity]);
+  }, [open, activity, reloadKey]);
 
   if (!open || !activity) return null;
 
   const approved = Boolean(activity.copilot);
+  const currentProvider = activeProvider ?? suggestion?.provider ?? 'rule_based';
+
+  const changeProvider = async (name: string) => {
+    if (name === currentProvider || switching) return;
+    setSwitching(true);
+    try {
+      const state = await setCopilotProvider(name);
+      setActiveProvider(state.provider);
+      showToast(`Đã chuyển nguồn gợi ý: ${PROVIDER_LABELS[state.provider] ?? state.provider}`);
+      if (!activity.copilot) setReloadKey((k) => k + 1);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Không đổi được nguồn gợi ý');
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   return (
     <div className="copilot-overlay" onClick={onClose}>
@@ -67,6 +112,26 @@ export function CopilotPanel({ open, activity, onClose, onApprove }: CopilotPane
             ×
           </button>
         </div>
+        <div className="copilot-provider-row">
+          <label className="copilot-provider-select">
+            Nguồn gợi ý:
+            <select
+              value={availableProviders.includes(currentProvider) ? currentProvider : ''}
+              onChange={(e) => changeProvider(e.target.value)}
+              disabled={switching}
+              aria-label="Nguồn gợi ý"
+            >
+              {availableProviders.map((name) => (
+                <option key={name} value={name}>
+                  {PROVIDER_LABELS[name] ?? name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <span className="copilot-provider-hint">
+            Đổi trong lúc chạy; khởi động lại backend trở về .env
+          </span>
+        </div>
 
         {loading && <div className="copilot-loading">Đang đề xuất nội dung giảng dạy...</div>}
 
@@ -75,7 +140,7 @@ export function CopilotPanel({ open, activity, onClose, onApprove }: CopilotPane
             <div className="copilot-error">
               <p>{error}</p>
               <p className="copilot-error-note">
-                Gợi ý: khởi động backend hoặc đổi Copilot provider (mặc định không cần AI).
+                Gợi ý: khởi động backend hoặc đổi nguồn gợi ý sang "Gợi ý có sẵn (không cần AI)".
               </p>
             </div>
             <div className="copilot-footer">

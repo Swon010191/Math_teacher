@@ -258,6 +258,12 @@ test('Teacher Copilot: mở gợi ý giảng dạy, duyệt và hiển thị tr�
   await expect(panel).toContainText('Tóm tắt');
   await expect(panel).toContainText('parabol');
 
+  await expect(panel.getByLabel('Nguồn gợi ý')).toHaveValue('rule_based');
+  await panel.getByLabel('Nguồn gợi ý').selectOption('ollama');
+  await expect(page.locator('.toast')).toContainText('Đã chuyển nguồn gợi ý: Ollama (AI local)');
+  await panel.getByLabel('Nguồn gợi ý').selectOption('rule_based');
+  await expect(page.locator('.toast')).toContainText('Đã chuyển nguồn gợi ý: Gợi ý có sẵn');
+
   await panel.getByRole('button', { name: 'Đưa lên bảng' }).click();
   await expect(page.locator('.toast')).toContainText('Đã đưa gợi ý giảng dạy lên bảng');
   await expect(page.getByTestId('activity-copilot')).toBeVisible();

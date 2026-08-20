@@ -1,23 +1,15 @@
-"""Dịch vụ Teacher Copilot - chọn provider theo cấu hình (COPILOT_PROVIDER)."""
+"""Dịch vụ Teacher Copilot - chọn provider theo cài đặt (xem copilot_settings)."""
 
 from __future__ import annotations
-
-import os
 
 from app.providers.copilot_base import CopilotProvider
 from app.providers.ollama_copilot import OllamaCopilotProvider
 from app.providers.rule_based_copilot import RuleBasedCopilotProvider
 from app.schemas.copilot import CopilotRequest, CopilotSuggestion
-
-AVAILABLE_COPILOT_PROVIDERS: tuple[str, ...] = ("rule_based", "ollama")
-
-
-def get_active_copilot_provider() -> str:
-    """Tên provider Copilot đang dùng (đọc từ môi trường)."""
-    name = os.environ.get("COPILOT_PROVIDER", "rule_based").strip().lower()
-    if name not in AVAILABLE_COPILOT_PROVIDERS:
-        name = "rule_based"
-    return name
+from app.services.copilot_settings import (
+    AVAILABLE_COPILOT_PROVIDERS,
+    get_active_copilot_provider,
+)
 
 
 def _build_provider() -> CopilotProvider:

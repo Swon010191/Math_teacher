@@ -79,6 +79,52 @@ class TestCopilot:
         assert response.status_code == 422
 
 
+class TestCopilotProvider:
+    @pytest.fixture(autouse=True)
+    def reset_provider(self) -> None:
+        from app.services.copilot_settings import set_active_copilot_provider
+
+        yield
+        set_active_copilot_provider("rule_based")
+
+    def test_get_provider_mac_dinh_rule_based(self, client: TestClient) -> None:
+        response = client.get("/api/copilot/provider")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] == "rule_based"
+        assert set(data["available"]) == {"rule_based", "ollama"}
+
+    def test_doi_provider(self, client: TestClient) -> None:
+        response = client.put("/api/copilot/provider", json={"provider": "ollama"})
+        assert response.status_code == 200
+        assert response.json()["provider"] == "ollama"
+        check = client.get("/api/copilot/provider")
+        assert check.json()["provider"] == "ollama"
+        health = client.get("/health")
+        assert health.json()["copilot_provider"] == "ollama"
+
+    def test_doi_provider_khong_hop_le(self, client: TestClient) -> None:
+        response = client.put("/api/copilot/provider", json={"provider": "spam"})
+        assert response.status_code == 400
+        assert "spam" in response.json()["detail"]
+
+    def test_suggest_dung_provider_da_doi(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:1")
+        client.put("/api/copilot/provider", json={"provider": "ollama"})
+        response = client.post(
+            "/api/copilot/suggest",
+            json={
+                "expression": "x**2 - 4*x + 3",
+                "activity_type": "quadratic_function",
+                "math": {"expression": "x**2 - 4*x + 3", "a": 1.0},
+            },
+        )
+        assert response.status_code == 500
+        assert "ollama" in response.json()["detail"]
+
+
 class TestRecognizeProvider:
     @pytest.fixture(autouse=True)
     def reset_provider(self) -> None:

@@ -8,6 +8,10 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Đổi nguồn gợi ý Copilot ngay trên giao diện**: panel "Trợ lý giảng dạy"
+  thêm dropdown chọn `rule_based` (gợi ý có sẵn, không cần AI) / `ollama` (AI
+  local) - API mới GET/PUT `/api/copilot/provider`, đổi lúc chạy, restart trở về
+  `.env`; đổi xong tự tải lại nội dung gợi ý.
 - **Teacher Copilot (Stage 3, phần lõi)**: nút "💡 Gợi ý" trên mỗi activity mở
   panel đề xuất nội dung giảng dạy (tóm tắt, kiến thức trọng tâm, câu hỏi gợi
   mở, ví dụ minh họa, chuỗi bước giảng dạy) — **giáo viên duyệt rồi mới lên
@@ -77,6 +81,8 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - Thêm Teacher Copilot: 8 test backend (API + provider rule_based/ollama với
   HTTP mock) + 4 test CopilotPanel + 1 test E2E - tổng backend 49, frontend 30,
   E2E 11.
+- Thêm đổi provider Copilot runtime: 4 test backend + 2 test CopilotPanel -
+  tổng backend 53, frontend 32.
 
 ### Sắp tới
 - Teacher Copilot nâng cao: chọn cấp học, custom model/LLM provider.
