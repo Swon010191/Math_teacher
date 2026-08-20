@@ -8,6 +8,10 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **CI tự động (GitHub Actions)**: mỗi lần push lên main hoặc mở PR sẽ chạy
+  backend pytest (41 test), frontend vitest + build (26 test) và E2E Playwright
+  (10 test); Playwright có thể nhận `BACKEND_PYTHON` để chạy trên nhiều hệ điều hành.
+- **Workflow phát hành**: push tag `v*` tự tạo GitHub Release kèm ghi chú tự sinh.
 - **Đổi provider nhận dạng ngay trên giao diện**: bấm vào chip "AI sẵn sàng"
   mở popover xem và chuyển đổi giữa Mock / Ollama Vision / Pix2Text (API mới
   GET/PUT `/api/recognize/provider`; đổi trong lúc chạy, restart trở về .env).

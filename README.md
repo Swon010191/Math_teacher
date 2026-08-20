@@ -1,5 +1,7 @@
 # AI Teaching Assistant - Math Teacher
 
+![CI](https://github.com/Swon010191/Math_teacher/actions/workflows/ci.yml/badge.svg)
+
 Nền tảng giảng dạy AI mã nguồn mở giúp giáo viên biến nội dung trên bảng thành
 trải nghiệm giảng dạy trực quan, tương tác và **do giáo viên kiểm soát**.
 
@@ -137,18 +139,25 @@ Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến mô
 ## Kiểm thử
 
 ```bash
-# Backend (27 test)
+# Backend (41 test)
 cd backend
 pytest
 
-# Frontend (14 test đơn vị)
+# Frontend (26 test đơn vị)
 cd frontend
 npm test
 
-# E2E (3 test luồng chính — tự khởi động backend + frontend)
+# E2E (10 test luồng chính — tự khởi động backend + frontend)
 cd frontend
 npm run test:e2e
 ```
+
+Trên máy Windows, nếu backend chưa được cài venv tại `backend/.venv`, chỉ định
+đường dẫn Python cho Playwright bằng biến môi trường `BACKEND_PYTHON`
+(ví dụ `BACKEND_PYTHON=C:\path\to\python.exe npm run test:e2e`).
+
+Mỗi lần push lên `main` hoặc mở PR, [GitHub Actions](.github/workflows/ci.yml)
+tự chạy toàn bộ test ở trên. Push tag `v*` sẽ tự tạo GitHub Release.
 
 ## Cấu trúc repository
 

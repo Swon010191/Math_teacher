@@ -49,6 +49,30 @@ Trước khi tạo issue, hãy tìm kiếm xem vấn đề đã được báo c�
 - Một commit cho một thay đổi logic; tách riêng commit cho từng mục đích.
 - Tham khảo số issue liên quan khi cần: `fix: sửa ... (#12)`.
 
+## Kiểm thử và CI
+
+Mỗi pull request lên `main` sẽ được [GitHub Actions](.github/workflows/ci.yml)
+kiểm tra tự động: pytest backend, vitest + build frontend, và E2E Playwright.
+Trước khi tạo PR, hãy chạy đầy đủ trên máy:
+
+```bash
+# Backend
+cd backend
+pytest
+
+# Frontend
+cd frontend
+npm test
+npm run build
+
+# E2E (tự khởi động backend + frontend)
+cd frontend
+npm run test:e2e
+```
+
+Trên Windows, nếu chưa có venv tại `backend/.venv`, chỉ định Python cho Playwright:
+`BACKEND_PYTHON=C:\path\to\python.exe npm run test:e2e`.
+
 ## Cài đặt môi trường phát triển
 
 Xem [docs/HUONG_DAN_CAI_DAT.md](docs/HUONG_DAN_CAI_DAT.md) và

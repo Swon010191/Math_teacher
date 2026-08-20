@@ -2,9 +2,9 @@ import { defineConfig } from '@playwright/test';
 
 import { fileURLToPath } from 'node:url';
 
-const backendPython = fileURLToPath(
-  new URL('../backend/.venv/Scripts/python.exe', import.meta.url),
-);
+const backendPython =
+  process.env.BACKEND_PYTHON ??
+  fileURLToPath(new URL('../backend/.venv/Scripts/python.exe', import.meta.url));
 
 export default defineConfig({
   testDir: './e2e',
