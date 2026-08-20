@@ -1,0 +1,332 @@
+import { useCallback, useEffect, useRef, useState } from 'react';
+
+import {
+  analyzeExpression,
+  createQuadraticActivity,
+  recognizeRegion,
+  type ActivityModel,
+} from '../../api/client';
+import { clearBoard, loadBoard, saveBoard } from '../../api/storage';
+import { makeId, useAppStore } from '../../stores/appStore';
+import { QuadraticActivity } from '../activities/QuadraticActivity';
+import { MathInputBar } from '../math/MathInputBar';
+import { RecognitionModal } from '../recognition/RecognitionModal';
+import { Toast } from '../../components/Toast';
+import { BoardStage } from './BoardStage';
+import { Toolbar } from './Toolbar';
+import type { ActivityObject, BoardObject } from './types';
+
+export function Whiteboard() {
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const objects = useAppStore((s) => s.objects);
+  const activities = useAppStore((s) => s.activities);
+  const viewport = useAppStore((s) => s.viewport);
+  const confirm = useAppStore((s) => s.confirm);
+  const toast = useAppStore((s) => s.toast);
+  const addObject = useAppStore((s) => s.addObject);
+  const updateObject = useAppStore((s) => s.updateObject);
+  const removeObject = useAppStore((s) => s.removeObject);
+  const upsertActivity = useAppStore((s) => s.upsertActivity);
+  const setConfirm = useAppStore((s) => s.setConfirm);
+  const clearConfirm = useAppStore((s) => s.clearConfirm);
+  const showToast = useAppStore((s) => s.showToast);
+  const clearToast = useAppStore((s) => s.clearToast);
+  const restoreBoard = useAppStore((s) => s.loadBoard);
+  const setTool = useAppStore((s) => s.setTool);
+
+  const [mathInputOpen, setMathInputOpen] = useState(false);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(clearToast, 3200);
+    return () => clearTimeout(timer);
+  }, [toast, clearToast]);
+
+  const handleRecognizeRegion = useCallback(
+    async (imageBase64: string, hint: string, x: number, y: number) => {
+      try {
+        showToast('Đang nhận dạng...');
+        const result = await recognizeRegion(imageBase64, hint);
+        setConfirm({
+          mode: 'math',
+          latex: result.latex,
+          expression: result.expression,
+          confidence: result.confidence,
+          x,
+          y,
+        });
+      } catch (error) {
+        showToast(`Lỗi nhận dạng: ${(error as Error).message}`);
+      }
+    },
+    [setConfirm, showToast],
+  );
+
+  const handleConfirmExpression = useCallback(
+    async (expression: string) => {
+      try {
+        const activity = await createQuadraticActivity(expression);
+        const activityId = makeId();
+        upsertActivity(activityId, activity);
+        const obj: ActivityObject = {
+          id: makeId(),
+          type: 'activity',
+          activityId,
+          x: confirm.x,
+          y: confirm.y,
+          width: 420,
+          height: 340,
+        };
+        addObject(obj);
+        clearConfirm();
+        showToast('Đã tạo hoạt động giảng dạy trên bảng');
+      } catch (error) {
+        showToast(`Lỗi tạo activity: ${(error as Error).message}`);
+      }
+    },
+    [confirm.x, confirm.y, upsertActivity, addObject, clearConfirm, showToast],
+  );
+
+  const handleTypedInput = useCallback(
+    async (raw: string) => {
+      setMathInputOpen(false);
+      try {
+        const analysis = await analyzeExpression(raw);
+        const activity = await createQuadraticActivity(raw);
+        const activityId = makeId();
+        upsertActivity(activityId, activity);
+        const center = {
+          x: (-viewport.x + 120) / viewport.scale,
+          y: (-viewport.y + 80) / viewport.scale,
+        };
+        addObject({
+          id: makeId(),
+          type: 'activity',
+          activityId,
+          x: center.x,
+          y: center.y,
+          width: 420,
+          height: 340,
+        } as ActivityObject);
+        showToast(`Đã phân tích ${analysis.kind === 'quadratic' ? 'hàm bậc hai' : analysis.kind}: ${activity.math.expression}`);
+      } catch (error) {
+        showToast(`Lỗi: ${(error as Error).message}`);
+      }
+    },
+    [viewport, upsertActivity, addObject, showToast],
+  );
+
+  const handleAddText = useCallback(
+    (x: number, y: number) => {
+      const text = window.prompt('Nhập nội dung text:');
+      if (!text || !text.trim()) return;
+      addObject({
+        id: makeId(),
+        type: 'text',
+        text: text.trim(),
+        x,
+        y,
+        fontSize: 24,
+        color: '#1a1a2e',
+      });
+    },
+    [addObject],
+  );
+
+  const handleSave = useCallback(async () => {
+    try {
+      await saveBoard({ objects, activities, savedAt: new Date().toISOString() });
+      showToast('Đã lưu bảng trên máy');
+    } catch (error) {
+      showToast(`Lỗi lưu: ${(error as Error).message}`);
+    }
+  }, [objects, activities, showToast]);
+
+  const handleOpen = useCallback(async () => {
+    const board = await loadBoard();
+    if (!board) {
+      showToast('Chưa có bảng đã lưu');
+      return;
+    }
+    restoreBoard(board.objects, board.activities);
+    showToast('Đã mở bảng đã lưu');
+  }, [restoreBoard, showToast]);
+
+  const handleExport = useCallback(() => {
+    const payload = JSON.stringify({ objects, activities, exportedAt: new Date().toISOString() }, null, 2);
+    const blob = new Blob([payload], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ai-teaching-board-${new Date().toISOString().slice(0, 10)}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('Đã xuất file JSON');
+  }, [objects, activities, showToast]);
+
+  const handleImport = useCallback(() => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as { objects?: BoardObject[]; activities?: Record<string, unknown> };
+        restoreBoard(parsed.objects ?? [], parsed.activities ?? {});
+        showToast('Đã nhập bảng từ JSON');
+      } catch (error) {
+        showToast(`File không hợp lệ: ${(error as Error).message}`);
+      }
+    };
+    input.click();
+  }, [loadBoard, showToast]);
+
+  const handleClear = useCallback(() => {
+    if (!window.confirm('Xóa toàn bộ nội dung bảng?')) return;
+    restoreBoard([], {});
+    void clearBoard();
+    showToast('Đã xóa bảng');
+  }, [restoreBoard, showToast]);
+
+  return (
+    <div className="whiteboard">
+      <Toolbar
+        onSave={handleSave}
+        onOpen={handleOpen}
+        onExport={handleExport}
+        onImport={handleImport}
+        onClear={handleClear}
+        onTypedInput={() => {
+          setMathInputOpen(true);
+          setTool('select');
+        }}
+      />
+      <div className="board-container" ref={containerRef}>
+        <BoardStage
+          containerRef={containerRef}
+          onRecognizeRegion={handleRecognizeRegion}
+          onAddText={handleAddText}
+        />
+        <div className="activity-layer">
+          {objects
+            .filter((o): o is ActivityObject => o.type === 'activity')
+            .map((obj) => (
+              <ActivityFrame
+                key={obj.id}
+                obj={obj}
+                activity={activities[obj.activityId] as ActivityModel | undefined}
+                viewport={viewport}
+                onUpdate={updateObject}
+                onRemove={removeObject}
+              />
+            ))}
+        </div>
+        {mathInputOpen && (
+          <MathInputBar
+            onCancel={() => setMathInputOpen(false)}
+            onSubmit={handleTypedInput}
+          />
+        )}
+      </div>
+      <RecognitionModal
+        open={confirm.mode !== 'none'}
+        latex={confirm.latex}
+        expression={confirm.expression}
+        confidence={confirm.confidence}
+        onCancel={clearConfirm}
+        onConfirm={handleConfirmExpression}
+      />
+      <Toast message={toast} />
+    </div>
+  );
+}
+
+function ActivityFrame({
+  obj,
+  activity,
+  viewport,
+  onUpdate,
+  onRemove,
+}: {
+  obj: ActivityObject;
+  activity?: ActivityModel;
+  viewport: { x: number; y: number; scale: number };
+  onUpdate: (id: string, patch: Partial<BoardObject>) => void;
+  onRemove: (id: string) => void;
+}) {
+  const [dragging, setDragging] = useState(false);
+  const [resizing, setResizing] = useState(false);
+
+  const style: React.CSSProperties = {
+    transform: `translate(${viewport.x + obj.x * viewport.scale}px, ${viewport.y + obj.y * viewport.scale}px)`,
+    width: obj.width * viewport.scale,
+    height: obj.height * viewport.scale,
+  };
+
+  const onHeaderPointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startObjX = obj.x;
+    const startObjY = obj.y;
+    setDragging(true);
+    const move = (ev: PointerEvent) => {
+      onUpdate(obj.id, {
+        x: startObjX + (ev.clientX - startX) / viewport.scale,
+        y: startObjY + (ev.clientY - startY) / viewport.scale,
+      });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setDragging(false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  const onResizePointerDown = (e: React.PointerEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const startX = e.clientX;
+    const startY = e.clientY;
+    const startW = obj.width * viewport.scale;
+    const startH = obj.height * viewport.scale;
+    setResizing(true);
+    const move = (ev: PointerEvent) => {
+      onUpdate(obj.id, {
+        width: Math.max(260, (startW + ev.clientX - startX) / viewport.scale),
+        height: Math.max(200, (startH + ev.clientY - startY) / viewport.scale),
+      });
+    };
+    const up = () => {
+      window.removeEventListener('pointermove', move);
+      window.removeEventListener('pointerup', up);
+      setResizing(false);
+    };
+    window.addEventListener('pointermove', move);
+    window.addEventListener('pointerup', up);
+  };
+
+  return (
+    <div
+      className={`activity-frame${dragging ? ' dragging' : ''}${resizing ? ' resizing' : ''}`}
+      style={style}
+    >
+      <div className="activity-header" onPointerDown={onHeaderPointerDown} title="Kéo để di chuyển">
+        <span>Hoạt động: {activity?.source.latex ?? '...'}</span>
+        <button className="activity-close" onClick={() => onRemove(obj.id)} title="Xóa hoạt động">
+          ×
+        </button>
+      </div>
+      {activity ? (
+        <QuadraticActivity activity={activity} />
+      ) : (
+        <div className="activity-loading">Đang tải activity...</div>
+      )}
+      <div className="activity-resize" onPointerDown={onResizePointerDown} title="Kéo để thay đổi kích thước" />
+    </div>
+  );
+}

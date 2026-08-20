@@ -50,6 +50,9 @@ class TestMathActivity:
         assert data["schemaVersion"] == "1.0"
         assert data["type"] == "quadratic_function"
         assert data["math"]["vertex"] == [2.0, -1.0]
+        assert data["math"]["a"] == 1.0
+        assert data["math"]["b"] == -4.0
+        assert data["math"]["c"] == 3.0
         assert [w["type"] for w in data["widgets"]] == [
             "graph",
             "parameter_slider",

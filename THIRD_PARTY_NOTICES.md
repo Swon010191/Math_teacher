@@ -7,31 +7,33 @@ sử dụng trong dự án MIT. Bảng này được cập nhật mỗi khi thay
 
 ## Backend (Python)
 
-| Thư viện | Mục đích | Giấy phép |
-|---|---|---|
-| FastAPI | Framework API | MIT |
-| Pydantic | Validation dữ liệu | MIT |
-| SymPy | Toán ký hiệu (nguồn sự thật toán học) | BSD-3-Clause |
-| Uvicorn | ASGI server | BSD-3-Clause |
-| pytest | Kiểm thử | MIT |
-| httpx | Test client cho API | BSD-3-Clause |
-| Pillow | Xử lý ảnh cho Recognition (kế hoạch) | MIT-CMU (HPND) |
+| Thư viện | Phiên bản | Mục đích | Giấy phép |
+|---|---|---|---|
+| FastAPI | 0.115+ | Framework API | MIT |
+| Pydantic | 2.x | Validation dữ liệu | MIT |
+| SymPy | 1.12+ | Toán ký hiệu (nguồn sự thật toán học) | BSD-3-Clause |
+| Uvicorn | 0.30+ | ASGI server | BSD-3-Clause |
+| pytest | 8.x | Kiểm thử | MIT |
+| httpx | 0.27+ | Test client cho API | BSD-3-Clause |
 
 ## Frontend (JavaScript/TypeScript)
 
-| Thư viện | Mục đích | Giấy phép |
-|---|---|---|
-| React | Giao diện | MIT |
-| TypeScript | Ngôn ngữ | Apache-2.0 |
-| Vite | Build tool | MIT |
-| Zustand | Quản lý trạng thái | MIT |
-| react-konva / konva | Vẽ canvas cho Whiteboard | MIT |
-| JSXGraph | Đồ thị toán học tương tác | LGPL-3.0 + MIT (dual) |
-| KaTeX | Hiển thị LaTeX | MIT |
-| Plotly.js *(đánh giá)* | Đồ thị thay thế | MIT |
-| Vitest | Kiểm thử | MIT |
-| React Testing Library | Kiểm thử giao diện | MIT |
-| Playwright | Kiểm thử E2E | Apache-2.0 |
+| Thư viện | Phiên bản | Mục đích | Giấy phép |
+|---|---|---|---|
+| React | 18.x | Giao diện | MIT |
+| TypeScript | 5.x | Ngôn ngữ | Apache-2.0 |
+| Vite | 6.x | Build tool | MIT |
+| Zustand | 4.x | Quản lý trạng thái | MIT |
+| react-konva / konva | 18.x / 9.x | Vẽ canvas cho Whiteboard | MIT |
+| JSXGraph | 1.13.x | Đồ thị toán học tương tác | MIT OR LGPL-3.0-or-later |
+| KaTeX | 0.16.x | Hiển thị LaTeX | MIT |
+| idb-keyval | 6.x | Lưu trữ IndexedDB | Apache-2.0 |
+| Vitest | 2.x | Kiểm thử | MIT |
+| React Testing Library | 16.x | Kiểm thử giao diện | MIT |
+| jsdom | 25.x | Môi trường test | MIT |
+
+> Lưu ý: file `frontend/src/vendor/jsxgraph.css` được copy từ package JSXGraph
+> (giấy phép MIT OR LGPL-3.0-or-later) để chạy local, không phụ thuộc CDN.
 
 ## AI / Recognition (kế hoạch tích hợp)
 

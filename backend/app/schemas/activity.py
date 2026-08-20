@@ -13,6 +13,9 @@ class ActivityMath(BaseModel):
     """Kết quả chính xác từ Math Engine."""
 
     expression: str
+    a: float | None = None
+    b: float | None = None
+    c: float | None = None
     vertex: list[float] | None = None
     roots: list[float] | None = None
     axis: str | None = None

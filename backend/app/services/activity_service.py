@@ -30,6 +30,9 @@ def build_quadratic_activity(
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
             expression=analysis.normalized_expression,
+            a=q.a,
+            b=q.b,
+            c=q.c,
             vertex=q.vertex,
             roots=q.roots,
             axis=q.axis,

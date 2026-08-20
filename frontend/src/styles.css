@@ -1,0 +1,487 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: #f3f4f6;
+  color: #1f2937;
+}
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.app-header {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 16px;
+  background: #111827;
+  color: #f9fafb;
+  border-bottom: 3px solid #3b82f6;
+}
+
+.app-header h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.app-subtitle {
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+/* ---------- Toolbar ---------- */
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 12px;
+  background: #ffffff;
+  border-bottom: 1px solid #d1d5db;
+}
+
+.toolbar-group {
+  display: flex;
+  gap: 4px;
+  padding-right: 8px;
+  border-right: 1px solid #e5e7eb;
+}
+
+.toolbar-group:last-of-type {
+  border-right: none;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: #374151;
+}
+
+.tool-btn:hover {
+  background: #f3f4f6;
+}
+
+.tool-btn.active {
+  background: #3b82f6;
+  color: #ffffff;
+}
+
+.tool-btn.danger:hover {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.tool-icon {
+  font-size: 15px;
+  min-width: 16px;
+  text-align: center;
+}
+
+.toolbar-hint {
+  margin-left: auto;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+/* ---------- Board ---------- */
+
+.whiteboard {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
+.board-container {
+  position: relative;
+  flex: 1;
+  overflow: hidden;
+  background: #ffffff;
+}
+
+.board-container > .konvajs-content {
+  position: absolute;
+  inset: 0;
+}
+
+.activity-layer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+}
+
+.activity-frame {
+  position: absolute;
+  top: 0;
+  left: 0;
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  pointer-events: auto;
+}
+
+.activity-frame.selected {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.35);
+}
+
+.activity-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  background: #f8fafc;
+  border-bottom: 1px solid #e5e7eb;
+  border-radius: 8px 8px 0 0;
+  font-size: 12px;
+  color: #6b7280;
+  cursor: grab;
+  user-select: none;
+}
+
+.activity-header:active {
+  cursor: grabbing;
+}
+
+.activity-close {
+  border: none;
+  background: transparent;
+  font-size: 16px;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.activity-close:hover {
+  color: #dc2626;
+}
+
+.activity-loading {
+  padding: 20px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.activity-resize {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 18px;
+  height: 18px;
+  cursor: nwse-resize;
+  border-right: 3px solid #d1d5db;
+  border-bottom: 3px solid #d1d5db;
+  border-radius: 0 0 6px 0;
+}
+
+/* ---------- Quadratic activity ---------- */
+
+.quadratic-activity {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  padding: 6px;
+}
+
+.activity-formula {
+  text-align: center;
+  padding: 2px 0 4px;
+  font-size: 17px;
+  color: #1e293b;
+  min-height: 28px;
+}
+
+.jsxgraph-container {
+  flex: 1;
+  min-height: 120px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #ffffff;
+}
+
+.activity-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-top: 6px;
+}
+
+.reveal-controls {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.chip {
+  padding: 4px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 999px;
+  background: #f9fafb;
+  font-size: 12px;
+  cursor: pointer;
+  color: #374151;
+}
+
+.chip.on {
+  background: #3b82f6;
+  border-color: #3b82f6;
+  color: #ffffff;
+}
+
+.sliders {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.slider-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: #374151;
+  flex: 1;
+  min-width: 120px;
+}
+
+.slider-label {
+  min-width: 64px;
+  white-space: nowrap;
+}
+
+.slider-row input[type='range'] {
+  flex: 1;
+  accent-color: #3b82f6;
+}
+
+.steps-control {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.steps-status {
+  flex: 1;
+  text-align: center;
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.steps-visible {
+  color: #9ca3af;
+}
+
+.activity-stats {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 12px;
+}
+
+.stat {
+  background: #eff6ff;
+  color: #1d4ed8;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.stat.muted {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+/* ---------- Buttons ---------- */
+
+.btn {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #2563eb;
+  color: #ffffff;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.btn-secondary {
+  background: #ffffff;
+  border-color: #d1d5db;
+  color: #374151;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: #f3f4f6;
+}
+
+/* ---------- Modal ---------- */
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(17, 24, 39, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+}
+
+.modal {
+  width: min(560px, 90vw);
+  background: #ffffff;
+  border-radius: 10px;
+  padding: 20px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.25);
+}
+
+.modal h3 {
+  margin: 0 0 8px;
+  font-size: 17px;
+}
+
+.modal-note {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #6b7280;
+}
+
+.modal-latex {
+  font-family: 'Courier New', monospace;
+  background: #f3f4f6;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.math-preview {
+  text-align: center;
+  font-size: 20px;
+  padding: 10px;
+  margin-bottom: 10px;
+  background: #f9fafb;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  min-height: 52px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-label {
+  display: block;
+  font-size: 13px;
+  color: #374151;
+  margin-bottom: 6px;
+}
+
+.modal-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+/* ---------- Math input bar ---------- */
+
+.math-input-bar {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  padding: 8px 12px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+}
+
+.math-input-prefix {
+  font-style: italic;
+  font-size: 15px;
+  color: #6b7280;
+}
+
+.math-input {
+  width: 240px;
+  padding: 6px 10px;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 14px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ---------- Toast ---------- */
+
+.toast {
+  position: fixed;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #111827;
+  color: #f9fafb;
+  padding: 10px 18px;
+  border-radius: 8px;
+  font-size: 13px;
+  z-index: 200;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  animation: toast-in 0.2s ease-out;
+}
+
+@keyframes toast-in {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}.activity-frame.dragging { cursor: grabbing; opacity: 0.95; }
+.activity-frame.resizing { cursor: nwse-resize; }
+
