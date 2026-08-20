@@ -43,7 +43,7 @@ class OllamaVisionProvider(RecognitionProvider):
         self,
         url: str | None = None,
         model: str | None = None,
-        timeout_seconds: float = 60.0,
+        timeout_seconds: float = 120.0,
         http_client: httpx.Client | None = None,
     ) -> None:
         self._url = (url or os.environ.get("OLLAMA_URL", "http://localhost:11434")).rstrip("/")

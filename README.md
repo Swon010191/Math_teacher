@@ -116,11 +116,15 @@ Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến mô
 
 ```powershell
 # Tải bản portable: https://ollama.com/download/windows → giải nén vào ai-tools\ollama
-# Đặt biến môi trường (máy này đã đặt): OLLAMA_MODELS=<project>\ai-tools\ollama\models
-ai-tools\ollama\ollama.exe pull llava       # model thị giác (≈ 4.7 GB)
-ai-tools\ollama\ollama.exe pull llama3.2    # model chat cho Teacher Copilot (≈ 2.0 GB)
-ai-tools\ollama\ollama.exe serve            # chạy server tại http://localhost:11434
+# Đặt biến môi trường OLLAMA_MODELS trỏ tới thư mục chứa model (máy này dùng D:\Misc\Tools\AI_Models)
+ollama pull llava       # model thị giác (≈ 4.7 GB)
+ollama pull llama3.2    # model chat cho Teacher Copilot (≈ 2.0 GB)
+ollama serve            # chạy server tại http://localhost:11434
 ```
+
+> Lưu ý: `ollama pull` là lệnh *client* — model được lưu vào thư mục của **server**
+> đang chạy (theo biến `OLLAMA_MODELS` của server), không phải nơi bạn gõ lệnh.
+> Đảm bảo `OLLAMA_MODELS` trỏ đúng thư mục chứa model trước khi pull/serve.
 
 **2. Pix2Text** (nhận dạng công thức chuyên dụng)
 
@@ -134,10 +138,14 @@ py -3.14 -m venv .venv
 
 **3. Khởi động lại sau khi tắt máy:** chỉ cần chạy lại 2 lệnh `ollama serve` và
 `p2t serve --port 8503` ở trên (máy này đã tạo 2 tác vụ Windows **Task Scheduler**
-`P2TServe` và `MathBackend` để tự khởi động khi đăng nhập). Khi backend chạy rồi,
-mở giao diện và bấm **"AI sẵn sàng"** → popover liệt kê 3 provider (Mock / Ollama
-Vision / Pix2Text), bấm **"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh
-✓ là sẵn sàng dùng được.
+`P2TServe` và `MathBackend` với trigger đăng nhập — **tự khởi động khi đăng nhập**
+cùng với Ollama Desktop). Khi backend chạy rồi, mở giao diện và bấm
+**"AI sẵn sàng"** → popover liệt kê 3 provider (Mock / Ollama Vision / Pix2Text),
+bấm **"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh ✓ là sẵn sàng dùng được.
+
+> **Nhận dạng thật có thể chậm:** model AI chạy local trên CPU mất **khoảng 10–60
+> giây** cho lần đầu (llava 7B). Hệ thống chờ tối đa **120 giây**; trong lúc chờ
+> giao diện hiển thị trạng thái đang xử lý, không bị cắt giữa chừng như trước.
 
 **Teacher Copilot:** mặc định dùng `rule_based` (nội dung sinh theo quy tắc,
 không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `ollama

@@ -4,15 +4,24 @@ import type { CopilotSuggestion } from '../features/copilot/copilotTypes';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
+async function request<T>(
+  path: string,
+  init?: RequestInit,
+  timeoutMs = 20_000,
+): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(20_000),
+      signal: AbortSignal.timeout(timeoutMs),
       ...init,
     });
-  } catch {
+  } catch (err) {
+    if (err instanceof DOMException && err.name === 'TimeoutError') {
+      throw new Error(
+        'Xử lý AI quá lâu (quá thời gian chờ). Hãy thử lại hoặc kiểm tra tài nguyên máy.',
+      );
+    }
     throw new Error(
       'Không kết nối được máy chủ AI. Vui lòng khởi động backend: uvicorn app.main:app --port 8000',
     );
@@ -147,25 +156,33 @@ export async function recognizeRegion(
   imageBase64: string | null,
   hint?: string,
 ): Promise<RecognizeResult> {
-  return request<RecognizeResult>('/api/recognize', {
-    method: 'POST',
-    body: JSON.stringify({ image_base64: imageBase64, hint }),
-  });
+  return request<RecognizeResult>(
+    '/api/recognize',
+    {
+      method: 'POST',
+      body: JSON.stringify({ image_base64: imageBase64, hint }),
+    },
+    120_000,
+  );
 }
 
 export async function suggestCopilot(
   activity: ActivityModel,
   gradeLevel = 'THCS',
 ): Promise<CopilotSuggestion> {
-  return request<CopilotSuggestion>('/api/copilot/suggest', {
-    method: 'POST',
-    body: JSON.stringify({
-      expression: activity.math.expression,
-      activity_type: activity.type,
-      math: activity.math,
-      grade_level: gradeLevel,
-    }),
-  });
+  return request<CopilotSuggestion>(
+    '/api/copilot/suggest',
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        expression: activity.math.expression,
+        activity_type: activity.type,
+        math: activity.math,
+        grade_level: gradeLevel,
+      }),
+    },
+    120_000,
+  );
 }
 
 export interface CopilotProviderState {
