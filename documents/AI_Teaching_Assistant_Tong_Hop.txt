@@ -1,0 +1,922 @@
+AI TEACHING ASSISTANT - BAN TONG HOP DU AN
+===========================================
+
+1. DINH VI DU AN
+----------------
+
+Nen tang bang giang day AI ma nguon mo, giup giao vien:
+
+Viet hoac nhap kien thuc
+-> chon noi dung
+-> nhan dang
+-> kiem tra bieu thuc
+-> phan tich chinh xac
+-> tao truc quan hoa
+-> tao hoat dong tuong tac
+-> AI de xuat cach giai thich va cau hoi.
+
+San pham khong phai chatbot dat canh bang. Diem khac biet la bien noi dung
+tren bang thanh trai nghiem giang day truc quan, tuong tac va do giao vien
+kiem soat.
+
+
+2. GIAI THICH CAC PHUONG AN A, B, C, D
+--------------------------------------
+
+2.0. Dinh nghia truc tiep bon thanh phan
+
+A, B, C, D khong phai bon phuong an loai tru nhau. Chung la bon thanh phan
+khac nhau cua cung mot san pham.
+
+
+B - AI WHITEBOARD LA GI?
+
+AI Whiteboard la ung dung bang dien tu ma giao vien mo len va su dung trong
+luc giang bai. Day la man hinh lon chua toan bo bai giang.
+
+Nhung gi giao vien nhin thay trong AI Whiteboard:
+
+- Mot vung bang rong de viet va ve.
+- Thanh cong cu gom but, tay xoa, text, chon vung va AI.
+- Cac net viet tay, cong thuc, hinh anh va ghi chu.
+- Cac khoi noi dung tuong tac duoc chen vao bang.
+- Nut luu, mo lai va trinh chieu bai giang.
+
+Nhung gi giao vien lam trong AI Whiteboard:
+
+1. Viet mot cong thuc hoac noi dung len bang.
+2. Chon phan noi dung muon phan tich.
+3. Bam mot hanh dong nhu "Truc quan hoa" hoac "Tao cau hoi".
+4. Xem ket qua xuat hien ngay tren cung mot bang.
+5. Di chuyen, phong to, thu nho hoac xoa ket qua.
+6. Tiep tuc viet va giang ma khong phai mo ung dung khac.
+
+Vi du:
+
+Giao vien viet y = x^2 - 4x + 3, khoanh cong thuc va bam "Truc quan hoa".
+AI Whiteboard gui net viet di nhan dang, sau do chen mot khoi do thi tuong tac
+ngay ben canh cong thuc.
+
+AI Whiteboard la "cai bang". No quan ly khong gian, net but va moi doi tuong
+tren bang. No khong tu minh tinh toan nghiem hay viet loi giai; cac engine
+khac thuc hien nhung viec do.
+
+
+A - INTERACTIVE TEACHING CANVAS LA GI?
+
+Interactive Teaching Canvas la mot khoi noi dung giang day tuong tac duoc chen
+vao AI Whiteboard sau khi he thong da hieu noi dung giao vien chon.
+
+No khong phai mot bang dien tu thu hai. No giong mot "the bai giang thong
+minh" hoac mot mini-app nam tren bang.
+
+Nhung gi giao vien va hoc sinh nhin thay trong Teaching Canvas:
+
+- Do thi, hinh hoc hoac mo phong.
+- Cong thuc da duoc dinh dang ro rang.
+- Cac ket qua quan trong.
+- Slider de thay doi tham so.
+- Nut an/hien dap an.
+- Nut chuyen qua tung buoc giang day.
+- Cau hoi hoac loi giai thich gan voi noi dung dang hoc.
+
+Vi du voi y = x^2 - 4x + 3, Teaching Canvas la mot khoi gom:
+
++------------------------------------------------+
+| Ham so: y = x^2 - 4x + 3                       |
+|                                                |
+|                 Do thi parabol                 |
+|                                                |
+| [Hien dinh] [Hien nghiem] [Hien truc]         |
+| a: -----o-----  b: -----o-----  c: -----o----- |
+| [Cau hoi] [Giai thich] [Buoc tiep theo]        |
++------------------------------------------------+
+
+Khi giao vien keo slider a, do thi thay doi ngay. Khi giao vien bam "Hien
+nghiem", cac nghiem x = 1 va x = 3 moi xuat hien. Nho vay giao vien co the hoi
+hoc sinh truoc, sau do moi tiet lo dap an.
+
+Teaching Canvas la noi bien kien thuc tinh thanh trai nghiem co the thao tac.
+AI Whiteboard la noi chua Teaching Canvas.
+
+
+D - TEACHER COPILOT LA GI?
+
+Teacher Copilot la tro ly Generative AI hoat dong theo noi dung giao vien dang
+chon tren bang. No giup giao vien tao noi dung su pham, khong phai mot chatbot
+chung chung va khong phai cong cu tinh toan toan hoc.
+
+Nhung hanh dong Teacher Copilot cung cap:
+
+- Giai thich: viet cach giai thich phu hop voi cap hoc.
+- Tao cau hoi: de xuat cau hoi nhanh cho hoc sinh.
+- Tao vi du: sinh vi du tuong tu de luyen tap.
+- Challenge: tao cau hoi kho hon.
+- Connect: lien ket voi kien thuc lien quan.
+- Teaching Sequence: de xuat thu tu nen hien noi dung nao truoc, noi dung nao
+  sau.
+
+Vi du:
+
+Giao vien chon activity ham bac hai va bam "Tao cau hoi". Teacher Copilot co
+the de xuat:
+
+"Neu tang he so a nhung giu nguyen b va c, parabol se hep hon hay rong hon?"
+
+Giao vien duoc xem, sua hoac tu choi cau hoi. Chi khi giao vien bam "Dua len
+bang", cau hoi moi xuat hien trong Teaching Canvas.
+
+Teacher Copilot nhan ket qua chinh xac tu Math Engine de tao loi giai thich.
+No khong duoc tu tinh nghiem, tu ket luan dap an hoac tu dong dua noi dung len
+bang khi chua co su xac nhan cua giao vien.
+
+Teacher Copilot co the chay bang local AI khong can API key. Cloud AI chi la
+tuy chon neu nguoi dung muon tu cung cap key.
+
+
+C - OPEN TEACHING ACTIVITY / OPEN ACTIVITY PLATFORM LA GI?
+
+Open Teaching Activity la cach dong goi mot Teaching Canvas thanh du lieu mo
+de co the luu, chia se, sua va tai su dung.
+
+Vi du, activity "Kham pha ham bac hai" khong chi la mot anh chup. No la mot
+goi du lieu chua:
+
+- Cong thuc goc.
+- Ket qua tu Math Engine.
+- Loai do thi can hien thi.
+- Cac slider va nut dieu khien.
+- Thu tu cac buoc giang day.
+- Cau hoi va loi giai thich.
+- Phien ban cua dinh dang du lieu.
+
+Mot file activity co the duoc mo tren may khac va van giu nguyen kha nang
+tuong tac. Giao vien khac co the thay cau hoi, sua trinh tu giang day va luu
+thanh mot phien ban moi.
+
+Open Activity Platform la he sinh thai duoc xay quanh cac file activity do,
+bao gom:
+
+- Dinh dang JSON cong khai.
+- Thu vien activity do cong dong dong gop.
+- Chuc nang tai ve, chia se va fork activity.
+- Plugin de them mon hoc hoac loai mo phong moi.
+- SDK cho lap trinh vien phat trien renderer va tool.
+
+Vi du trong tuong lai:
+
+- Giao vien A tao activity ham bac hai va chia se no.
+- Giao vien B tai ve, doi bo cau hoi va dung cho lop cua minh.
+- Lap trinh vien C tao Physics Plugin mo phong F = ma.
+- Cong dong dich activity sang ngon ngu khac.
+
+Trong MVP, Open Activity moi chi can la JSON schema, export/import va mot so
+file mau. Thu vien online, marketplace va plugin SDK se duoc phat trien sau.
+
+
+PHAN BIET TRONG MOT CAU
+
+- AI Whiteboard: noi giao vien viet, chon va sap xep toan bo bai giang.
+- Interactive Teaching Canvas: khoi do thi/mo phong tuong tac nam tren bang.
+- Teacher Copilot: AI tao loi giai thich, cau hoi va goi y cach giang.
+- Open Teaching Activity: dinh dang mo de luu, chia se va mo rong khoi tuong
+  tac do.
+
+Vi du day du:
+
+Giao vien viet cong thuc tren AI Whiteboard -> he thong tao Interactive
+Teaching Canvas -> Teacher Copilot bo sung cau hoi va loi giai thich -> toan
+bo khoi noi dung duoc luu thanh Open Teaching Activity de co the dung lai va
+chia se trong tuong lai.
+
+
+2.1. Phuong an A - Interactive Teaching Canvas
+
+Ban chat:
+
+A la mot "khung hoat dong giang day tuong tac". No nhan mot noi dung kien thuc
+da duoc hieu, sau do bien noi dung do thanh mot thanh phan co the quan sat,
+thao tac va trinh bay trong lop. A khong phai bang ve va cung khong phai
+chatbot. No giong mot widget giang day co do thi, nut bam, slider va cac buoc
+tiet lo kien thuc.
+
+Van de A giai quyet:
+
+Neu AI chi tra ve mot doan giai thich, hoc sinh van chi doc noi dung tinh.
+Interactive Teaching Canvas bien ket qua thanh trai nghiem co the thao tac.
+Giao vien co the thay doi tham so, dat cau hoi, an dap an va lan luot mo tung
+phan trong qua trinh giang.
+
+Dau vao cua A:
+
+- Bieu thuc da duoc chuan hoa, vi du x**2 - 4*x + 3.
+- Loai kien thuc, vi du quadratic_function.
+- Ket qua chinh xac tu Math Engine.
+- Cau hinh hien thi va trinh tu giang day.
+- De xuat giai thich/cau hoi tu Teacher Copilot neu AI dang bat.
+
+He thong ben trong A thuc hien:
+
+- Chon renderer phu hop voi loai kien thuc.
+- Ve do thi hoac thanh phan truc quan.
+- Tao cac control tuong tac.
+- Dong bo slider voi bieu thuc va do thi.
+- Quan ly thanh phan nao dang an hoac hien.
+- Chuyen qua cac buoc trong teaching sequence.
+- Phat su kien khi giao vien thay doi activity.
+
+Dau ra cua A:
+
+- Mot activity React co the chen vao whiteboard.
+- Trang thai activity co the luu thanh JSON.
+- Ket qua tuong tac cap nhat ngay tren man hinh.
+- Mot chuoi buoc de giao vien dieu khien tiet hoc.
+
+Vi du cu the voi y = x^2 - 4*x + 3:
+
+1. Canvas ve parabol nhung tam thoi an dap an.
+2. Giao vien hoi hoc sinh du doan truc doi xung.
+3. Giao vien bam "Hien truc" de hien x = 2.
+4. Giao vien bam "Hien dinh" de hien (2, -1).
+5. Giao vien bam "Hien nghiem" de hien x = 1 va x = 3.
+6. Giao vien keo slider a, b, c de hoc sinh quan sat do thi thay doi.
+7. Math Engine tinh lai ket qua sau moi lan thay doi tham so.
+
+Thanh phan giao dien du kien:
+
++------------------------------------------------+
+| y = x^2 - 4x + 3                               |
+|                                                |
+|                  DO THI                        |
+|                                                |
+| [Hien dinh] [Hien nghiem] [Hien truc]         |
+| a: -----o-----  b: -----o-----  c: -----o----- |
+| [Buoc truoc]                    [Buoc tiep]     |
++------------------------------------------------+
+
+Pham vi A trong MVP:
+
+- Chi co activity ham bac hai.
+- Co graph, slider va reveal controls.
+- Co the keo, resize va luu tren whiteboard.
+- Chua can plugin cho nhieu mon hoc.
+- Chua can marketplace hoac chia se cong dong.
+
+Vai tro da chot:
+
+A la engine activity cot loi, duoc trien khai som va nam ben trong B. Sau nay
+A co the mo rong thanh nhieu loai activity cho Toan, Vat ly, Hoa hoc va cac
+mon khac.
+
+
+2.2. Phuong an B - AI Whiteboard
+
+Ban chat:
+
+B la ung dung bang dien tu hoan chinh ma giao vien truc tiep su dung. Day la
+"vo boc san pham" chua net but, text, hinh anh va cac activity cua A. B quan
+ly khong gian giang day; A chi quan ly mot hoat dong tuong tac ben trong khong
+gian do.
+
+Co the hieu ngan gon:
+
+- B la cai bang va moi thu nam tren bang.
+- A la mot khoi do thi/hoat dong tuong tac duoc chen vao bang.
+- D la tro ly AI tao noi dung cho khoi do.
+- C la cach chia se va mo rong cac khoi trong tuong lai.
+
+Van de B giai quyet:
+
+Giao vien hien nay phai viet tren bang, mo trinh duyet, tim cong cu ve do thi,
+copy ket qua va quay lai bai giang. B giu toan bo luong nay trong mot man hinh,
+de giao vien khong bi ngat mach giang day.
+
+Dau vao cua B:
+
+- Net but tu chuot, stylus hoac man hinh cam ung.
+- Text va cong thuc danh may.
+- Vung net viet duoc giao vien chon.
+- Activity da tao boi A.
+- Ket qua tu Recognition va Teacher Copilot.
+
+He thong ben trong B thuc hien:
+
+- Quan ly toa do, zoom, pan va cac layer cua bang.
+- Tao, chon, di chuyen, resize va xoa doi tuong.
+- Chuyen vung net but thanh anh cho Recognition Provider.
+- Hien thanh xac nhan ket qua nhan dang.
+- Chen activity cua A vao dung vi tri tren bang.
+- Luu va khoi phuc toan bo trang thai bai giang.
+- Dieu phoi menu "Giai thich", "Truc quan hoa", "Tao cau hoi".
+
+Golden flow cua B:
+
+1. Giao vien viet y = x^2 - 4x + 3 bang but.
+2. Giao vien khoanh hoac chon vung cong thuc.
+3. B gui vung chon sang Recognition Provider.
+4. He thong hien "Da nhan dang: y = x^2 - 4x + 3".
+5. Giao vien xac nhan hoac sua nhanh neu sai.
+6. Math Engine phan tich cong thuc.
+7. B chen activity cua A ngay ben canh cong thuc.
+8. Giao vien dieu khien do thi va yeu cau D tao cau hoi.
+
+Thanh phan giao dien du kien:
+
++----------------------------------------------------------------+
+| [Chon] [But] [Text] [Cong thuc] [Xoa] [AI] [Luu]              |
++----------------------------------------------------------------+
+|                                                                |
+|  y = x^2 - 4x + 3       +----------------------------------+   |
+|                          | Activity cua phuong an A         |   |
+|                          | Do thi + slider + reveal control |   |
+|                          +----------------------------------+   |
+|                                                                |
++----------------------------------------------------------------+
+
+Pham vi B trong MVP:
+
+- Mot trang whiteboard local.
+- But, text, select, move, resize, delete, zoom va pan co ban.
+- Chon vung net but de nhan dang.
+- Chen mot loai activity ham bac hai.
+- Luu local va JSON export/import.
+- Chua co tai khoan, cloud, multi-user hoac realtime collaboration.
+
+Vai tro da chot:
+
+B la san pham chinh va tam nhin dai han. Demo dau van phai trong giong mot
+whiteboard, nhung chi xay nhung cong cu can cho golden flow thay vi canh tranh
+day du voi cac ung dung whiteboard lon.
+
+
+2.3. Phuong an C - Open Teaching Activity Platform
+
+Ban chat:
+
+C la he sinh thai ma nguon mo xay quanh dinh dang Teaching Activity. No khong
+phai mot man hinh cu the. No la tieu chuan du lieu, bo cong cu va kho noi dung
+de nguoi khac co the tao activity moi ma khong can sua truc tiep phan core.
+
+Van de C giai quyet:
+
+Mot nhom nho khong the tu xay activity cho moi mon hoc, cap hoc va chuong
+trinh. C cho phep giao vien va lap trinh vien dong gop noi dung, widget va
+plugin, giup du an mo rong boi cong dong thay vi chi boi tac gia ban dau.
+
+C gom ba lop khac nhau:
+
+Lop 1 - Open Activity Format:
+
+- JSON schema co version.
+- Quy dinh input, math data, widgets va teaching steps.
+- Export/import khong phu thuoc mot AI provider.
+- Co co che migrate khi schema thay doi.
+
+Lop 2 - Plugin SDK:
+
+- Plugin khai bao capability cua no.
+- Plugin dinh nghia input/output schema.
+- Plugin cung cap renderer hoac tool moi.
+- Core kiem tra quyen va validate du lieu plugin.
+
+Lop 3 - Community Library:
+
+- Kho activity mau.
+- Tim kiem theo mon, lop va chu de.
+- Chia se, tai ve va fork activity.
+- Danh gia va bao cao noi dung sai.
+- Ban dich va noi dung theo chuong trinh tung quoc gia.
+
+Vi du dong gop cua cong dong:
+
+- Giao vien tao activity "Anh huong cua he so a den parabol".
+- Mot giao vien khac fork activity va thay bo cau hoi.
+- Lap trinh vien tao Physics Plugin de mo phong F = ma.
+- Nhom dich thuat bo sung noi dung tieng Anh hoac tieng Viet.
+
+Dau ra cua C:
+
+- File activity co the trao doi.
+- Plugin package co the cai dat.
+- Thu vien noi dung cong dong.
+- Tai lieu SDK va quy tac dong gop.
+
+Pham vi C trong MVP:
+
+- Chi dinh nghia Activity Model co schemaVersion.
+- Co JSON export/import.
+- Co mot vai activity mau trong repository.
+- Chua xay plugin runtime, marketplace hay server cong dong.
+
+Vai tro da chot:
+
+C la huong phat trien tuong lai. MVP khong dau tu vao he sinh thai, nhung du
+lieu cua A phai co schema ro rang ngay tu dau de sau nay khong phai viet lai
+toan bo he thong.
+
+
+2.4. Phuong an D - Teacher Copilot
+
+Ban chat:
+
+D la lop Generative AI ho tro giao vien ve ngon ngu va su pham. No nhan du
+lieu chinh xac tu Math Engine, nguyen lieu tu activity va ngu canh lop hoc,
+sau do de xuat noi dung co cau truc. D khong phai nguon su that toan hoc va
+khong duoc phep tu y dieu khien whiteboard.
+
+Van de D giai quyet:
+
+Math Engine biet nghiem la 1 va 3 nhung khong biet nen giai thich cho hoc sinh
+lop 10 nhu the nao, nen dat cau hoi gi truoc khi hien dap an, hoac nen tao vi
+du tiep theo ra sao. D chuyen ket qua ky thuat thanh goi y giang day.
+
+Dau vao cua D:
+
+- Bieu thuc da duoc giao vien xac nhan.
+- Ket qua co cau truc tu Math Engine.
+- Cap hoc, mon hoc va chu de.
+- Muc tieu cua giao vien: explain, question, example, challenge hoac connect.
+- Tai lieu truy xuat duoc neu sau nay co RAG.
+
+He thong ben trong D thuc hien:
+
+- Chon prompt theo loai hanh dong.
+- Goi local model hoac cloud provider tuy cau hinh.
+- Yeu cau model tra ve structured JSON.
+- Validate JSON bang schema.
+- Loai bo hoac danh dau ket qua khong hop le.
+- Hien preview de giao vien duyet.
+
+Dau ra cua D co the gom:
+
+- Loi giai thich ngan gon theo cap hoc.
+- Cau hoi goi mo kem muc tieu danh gia.
+- Vi du tuong tu co dap an do Math Engine kiem tra.
+- Teaching sequence theo tung buoc.
+- Goi y kien thuc lien quan.
+- Canh bao khi model khong du tin cay hoac thieu du lieu.
+
+Vi du:
+
+Math Engine cung cap:
+
+{
+  "vertex": [2, -1],
+  "roots": [1, 3],
+  "axis": "x=2"
+}
+
+Teacher Copilot de xuat:
+
+{
+  "explanation": "Do thi doi xung qua duong thang x = 2.",
+  "question": "Neu tang he so a, parabol se hep hay rong hon?",
+  "sequence": ["show_graph", "ask_prediction", "reveal_axis"]
+}
+
+Cach D xuat hien tren giao dien:
+
+1. Giao vien chon cong thuc hoac activity.
+2. Menu hien cac hanh dong: Giai thich, Tao cau hoi, Tao vi du, Mo rong.
+3. Giao vien chon mot hanh dong.
+4. D tao de xuat trong nen, khong chan Math Engine.
+5. Giao vien xem preview, sua neu can va bam "Dua len bang".
+6. Ket qua duoc gan vao activity thay vi chi nam trong lich su chat.
+
+Che do van hanh:
+
+- Local AI: khong can API key, rieng tu hon, phu thuoc phan cung nguoi dung.
+- Cloud AI: tuy chon, nguoi dung tu cung cap key, co the nhanh va manh hon.
+- No Generative AI: Math Core, Recognition va activity van hoat dong.
+
+Pham vi D trong MVP:
+
+- Mot local provider.
+- Ba hanh dong: Giai thich, Tao cau hoi, De xuat teaching sequence.
+- Structured output va schema validation.
+- Preview bat buoc truoc khi dua noi dung len bang.
+- Chua can agent tu tri, RAG lon hoac knowledge graph.
+
+Vai tro da chot:
+
+D la chuc nang quan trong nhung khong nam tren critical path. Activity phai
+xuat hien ngay tu Math Engine; D co the tai sau. Cach nay dam bao san pham van
+dung duoc khi model cham, loi hoac chua duoc cai dat.
+
+
+2.5. Moi quan he giua bon phuong an
+
+Bon phuong an khong loai tru nhau. Cau truc da chot la:
+
+                         B - AI WHITEBOARD
+                                  |
+             +--------------------+--------------------+
+             |                    |                    |
+    A - Teaching Canvas   D - Teacher Copilot   C - Open Platform
+       Chuc nang cot loi      Tro ly tuy chon       Mo rong tuong lai
+
+Thu tu phat trien de xuat:
+
+1. Xay AI Whiteboard toi gian cua B.
+2. Dua Interactive Teaching Canvas cua A vao whiteboard.
+3. Them Recognition de chuyen net viet thanh cong thuc.
+4. Them Teacher Copilot cua D bang local Generative AI.
+5. Mo rong thanh Open Activity Platform cua C khi du an da on dinh.
+
+
+3. CAU TRUC SAN PHAM
+--------------------
+
+- AI Whiteboard: san pham va giao dien chinh.
+- Interactive Teaching Canvas: chuc nang cot loi de render activity.
+- Math Engine: tinh toan chinh xac, khong phu thuoc LLM.
+- Recognition Engine: nhan dang chu viet va cong thuc.
+- Teacher Copilot: giai thich, tao cau hoi, vi du va trinh tu giang.
+- Open Activity Platform: plugin va chia se cong dong trong tuong lai.
+
+Phuong an B (AI Whiteboard) la tam nhin chinh. Phuong an A (Interactive
+Teaching Canvas) va D (Teacher Copilot) la cac he thong con. Phuong an C
+(Open Activity Platform) la huong phat trien sau khi san pham cot loi da duoc
+kiem chung.
+
+
+4. BA CAPABILITY DOC LAP
+------------------------
+
+4.1. Math Core
+
+Luon hoat dong, khong can Generative AI hoac API key:
+
+- Parse bieu thuc.
+- Tinh nghiem, dinh va truc doi xung.
+- Sinh du lieu do thi.
+- Kiem tra ket qua toan hoc.
+- Render activity.
+- Luu bang tren may.
+
+4.2. Recognition
+
+La luong su dung chinh thay vi bat giao vien nhap thu cong:
+
+- Nhan net but hoac anh cua vung duoc chon.
+- Chuyen thanh LaTeX hoac bieu thuc chuan.
+- Hien thi ket qua de giao vien xac nhan.
+- Cho phep sua nhanh khi nhan dang sai.
+
+Nhap thu cong van duoc giu lam co che sua loi va du phong, khong phai trai
+nghiem chinh.
+
+4.3. Generative AI
+
+- Giai thich theo cap hoc.
+- Tao cau hoi.
+- Tao vi du tuong tu.
+- De xuat teaching sequence.
+- Lien ket kien thuc.
+- Tom tat tai lieu khi co RAG.
+
+LLM khong duoc dung lam nguon tinh toan toan hoc. Math Engine moi la nguon
+su that cho nghiem, dao ham, dinh, mien xac dinh va cac ket qua dinh luong.
+
+
+5. LUONG XU LY CHINH
+--------------------
+
+Pen strokes / vung anh
+        |
+        v
+Recognition Provider
+        |
+        v
+LaTeX hoac bieu thuc du doan
+        |
+        v
+Man hinh xac nhan va sua loi
+        |
+        v
+Math Parser + SymPy
+        |
+        v
+Activity Specification
+        |
+        v
+Graph / Slider / Teaching Steps
+        |
+        v
+Generative AI bo sung giai thich va cau hoi
+        |
+        v
+Giao vien duyet
+        |
+        v
+Hien thi tren whiteboard
+
+
+6. PHAM VI DEMO DAU TIEN
+------------------------
+
+Demo la mot AI Whiteboard toi gian, gom:
+
+- Viet va ve tu do.
+- Them text.
+- Chon, di chuyen va xoa doi tuong.
+- Chon vung viet tay.
+- Nhan dang cong thuc.
+- Xac nhan hoac sua ket qua nhan dang.
+- Tao activity ham bac hai.
+- Ve do thi tuong tac.
+- Slider cho a, b, c.
+- An hoac hien dinh, nghiem va truc doi xung.
+- AI tao giai thich va cau hoi.
+- Luu va mo lai bang tren may.
+
+Chua lam trong demo dau:
+
+- Tai khoan nguoi dung.
+- Cloud storage.
+- Cong tac thoi gian thuc.
+- Plugin marketplace.
+- Browser extension.
+- Desktop overlay.
+- Tich hop bang cua ben thu ba.
+- Knowledge graph hoan chinh.
+- RAG quy mo lon.
+
+
+7. PHAM VI TOAN HOC
+-------------------
+
+Trien khai theo thu tu:
+
+1. Ham bac hai: y = ax^2 + bx + c.
+2. Ham bac nhat: y = ax + b.
+3. Ham phan thuc: y = a/x.
+4. Ham sin va cos.
+5. Ham logarit.
+6. Ham mu.
+7. Dao ham va khao sat ham so.
+8. Hinh hoc.
+
+Moc dau chi can lam sau ham bac hai:
+
+- Do thi.
+- Dinh parabol.
+- Truc doi xung.
+- Nghiem.
+- Giao diem voi cac truc.
+- Slider a, b, c.
+- An/hien tung dac trung.
+- Trinh tu giang day theo tung buoc.
+
+
+8. STACK KY THUAT DE XUAT
+-------------------------
+
+8.1. Frontend
+
+- React.
+- TypeScript.
+- Vite.
+- Zustand de quan ly trang thai giao dien va whiteboard.
+- React Query de giao tiep backend va quan ly request.
+- KaTeX de hien thi LaTeX.
+
+Chon Vite thay vi Next.js vi day la ung dung local-first, khong can SEO hoac
+server-side rendering. Vite nhe, build nhanh va phu hop demo ca nhan.
+
+8.2. Whiteboard
+
+- react-konva.
+- Konva.
+
+Konva dung giay phep MIT va phu hop de ve net but, pan, zoom, chon doi tuong,
+keo tha va quan ly layer.
+
+Activity tuong tac nen la React component tren lop DOM phia tren canvas. Khong
+nen ve nut bam, slider va noi dung phuc tap truc tiep len canvas.
+
+Khong chon tldraw lam nen mac dinh vi giay phep hien tai han che production
+deployment neu khong co giay phep rieng. Excalidraw, Konva va Fabric.js dung
+MIT; Konva phu hop hon voi nhu cau tuy bien activity cua demo.
+
+8.3. Math Renderer
+
+- KaTeX de render cong thuc nhanh tren giao dien.
+
+8.4. Visualization
+
+- JSXGraph neu uu tien tuong tac toan hoc sau.
+- Plotly neu uu tien prototype nhanh va do thi dep.
+- Slider va teaching controls duoc viet bang React component rieng.
+
+8.5. Backend
+
+- Python.
+- FastAPI.
+- Pydantic.
+- SymPy.
+- Uvicorn.
+
+SymPy xu ly toan ky hieu. FastAPI nhe, co OpenAPI va phu hop de ket noi cac
+model OCR/AI Python. Pydantic kiem tra du lieu co cau truc tu AI.
+
+8.6. Local AI
+
+- Ollama hoac local server tuong thich OpenAI API.
+- Khong khoa project vao mot model cu the.
+- Cho phep thay model text hoac multimodal tuy cau hinh may.
+
+Interface de xuat:
+
+GenerativeAIProvider
+|- LocalProvider
+|- OpenAICompatibleProvider
+`- CloudProvider
+
+8.7. Recognition
+
+Interface de xuat:
+
+RecognitionProvider
+|- LocalVisionProvider
+|- LocalMathOCRProvider
+`- CloudRecognitionProvider
+
+Demo co the bat dau bang local multimodal model de nhan vung anh. Sau do moi
+danh gia va tich hop model Math OCR chuyen biet. Bat buoc co buoc xac nhan vi
+nhan dang toan viet tay khong the dam bao chinh xac tuyet doi.
+
+8.8. Luu tru
+
+- IndexedDB cho du lieu local tren trinh duyet.
+- JSON export/import de sao luu va chia se activity.
+- Local filesystem neu sau nay dong goi desktop.
+- Chua can PostgreSQL hoac vector database trong MVP.
+
+8.9. Kiem thu
+
+- Vitest.
+- React Testing Library.
+- Playwright.
+- Pytest.
+
+Can co:
+
+- Unit test parser va Math Engine.
+- Schema validation test.
+- Activity renderer test.
+- API integration test.
+- E2E test cho luong viet, nhan dang, xac nhan va truc quan hoa.
+- Bo anh/net viet OCR mau kem ket qua mong doi.
+
+
+9. CAU TRUC REPOSITORY
+----------------------
+
+ai-teaching-assistant/
+|- frontend/
+|  |- src/
+|  |  |- features/
+|  |  |  |- board/
+|  |  |  |- activities/
+|  |  |  |- recognition/
+|  |  |  |- math/
+|  |  |  `- copilot/
+|  |  |- components/
+|  |  |- providers/
+|  |  |- stores/
+|  |  `- api/
+|  `- tests/
+|- backend/
+|  |- app/
+|  |  |- api/
+|  |  |- domain/
+|  |  |- services/
+|  |  |- providers/
+|  |  `- schemas/
+|  `- tests/
+|- examples/
+|  `- activities/
+|- docs/
+|- LICENSE
+|- CONTRIBUTING.md
+`- README.md
+
+
+10. MO HINH ACTIVITY
+--------------------
+
+Vi du:
+
+{
+  "schemaVersion": "1.0",
+  "type": "quadratic_function",
+  "source": {
+    "latex": "y=x^2-4x+3",
+    "confidence": 0.94,
+    "confirmed": true
+  },
+  "math": {
+    "expression": "x**2-4*x+3",
+    "vertex": [2, -1],
+    "roots": [1, 3],
+    "axis": "x=2"
+  },
+  "widgets": [
+    { "type": "graph" },
+    { "type": "parameter_slider", "parameters": ["a", "b", "c"] }
+  ],
+  "steps": [
+    { "visible": ["graph"] },
+    { "visible": ["graph", "axis"] },
+    { "visible": ["graph", "axis", "vertex", "roots"] }
+  ]
+}
+
+AI chi duoc de xuat du lieu theo schema. Khong thuc thi JavaScript hoac code do
+model sinh ra.
+
+
+11. NGUYEN TAC AI VA AN TOAN
+----------------------------
+
+- Math Engine la nguon su that toan hoc.
+- LLM chi de xuat noi dung su pham.
+- Dau ra LLM phai la JSON co schema.
+- Moi dau ra phai duoc validate.
+- Giao vien duoc xem va sua truoc khi trinh chieu.
+- API key khong luu trong source code.
+- Khong gui net but hoac du lieu lop hoc ra cloud neu chua duoc dong y.
+- Local AI la che do mien phi va rieng tu mac dinh.
+- Cloud free tier chi la tuy chon, khong phai phu thuoc bat buoc.
+- Khi AI loi, Math Core va whiteboard van tiep tuc hoat dong.
+
+Ma nguon mo khong dong nghia voi cloud API luon mien phi. Free tier co the bi
+gioi han hoac thay doi. Cach ben vung la local AI khong can API key, ket hop
+voi adapter cloud tuy chon va Bring Your Own Key.
+
+
+12. LO TRINH PHAT TRIEN
+-----------------------
+
+Giai doan 1 - Math Activity Demo:
+
+- Whiteboard toi gian.
+- Nhap cong thuc va activity ham bac hai.
+- Graph, slider va reveal controls.
+- Luu local.
+
+Giai doan 2 - Recognition:
+
+- Chon vung net but.
+- OCR hoac local vision model.
+- Xac nhan va sua bieu thuc.
+- Danh gia do chinh xac bang bo mau.
+
+Giai doan 3 - Generative AI:
+
+- Local AI provider.
+- Giai thich.
+- Sinh cau hoi.
+- Teaching sequence.
+- Structured output validation.
+
+Giai doan 4 - Mo rong Toan:
+
+- Cac loai ham con lai.
+- Dao ham.
+- Hinh hoc.
+
+Giai doan 5 - Open Platform:
+
+- Activity schema cong khai.
+- Plugin API.
+- Thu vien cong dong.
+- Chia se va fork activity.
+- Cac mon hoc khac.
+
+
+13. TIEU CHI DEMO THANH CONG
+----------------------------
+
+1. Nguoi dung viet hoac nhap duoc ham bac hai.
+2. He thong nhan dang va cho phep xac nhan bieu thuc.
+3. Math Engine tinh dung cac dac trung.
+4. Activity xuat hien truc tiep tren whiteboard.
+5. Giao vien dieu chinh he so bang slider.
+6. Giao vien kiem soat viec hien dap an.
+7. Local AI tao duoc giai thich hoac cau hoi.
+8. Khi tat Generative AI, chuc nang toan va whiteboard van chay.
+9. Bang duoc luu va mo lai tren may.
+10. Khong bat buoc tai khoan hoac cloud API tra phi.
+
+
+14. BASELINE KY THUAT CHOT
+--------------------------
+
+React + Vite + TypeScript + react-konva + FastAPI + SymPy + KaTeX +
+JSXGraph/Plotly + local AI provider.
+
+Kien truc local-first, Math Core luon hoat dong, Recognition va Generative AI
+co the bat/tat doc lap, cac AI provider co the thay the, du lieu activity co
+schema va co the export/import.
