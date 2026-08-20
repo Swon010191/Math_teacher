@@ -6,6 +6,7 @@ Chỉ dùng SymPy để tính toán. LLM không bao giờ được dùng thay th
 from __future__ import annotations
 
 import math
+import re
 import tokenize
 
 import sympy as sp
@@ -36,16 +37,54 @@ _TRANSFORMATIONS = standard_transformations + (
 _SAMPLE_RANGE = 5.0
 _SAMPLE_STEP = 0.5
 
+_SUPERSCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+_SUBSCRIPT_CHARS = str.maketrans("₀₁₂₃₄₅₆₇₈₉ₑ", "0123456789e")
+
+_LOG_BASE_RE = re.compile(r"\blog(\d+)\s*\(([^()]*)\)")
+_LG_RE = re.compile(r"\blg\s*\(([^()]*)\)")
+_LOGE_RE = re.compile(r"\bloge\s*\(")
+
 
 class MathEngineError(ValueError):
     """Lỗi phân tích biểu thức toán học."""
 
 
-def normalize_expression(raw: str) -> str:
-    """Chuẩn hóa biểu thức thô thành dạng SymPy.
+def _expand_superscripts(text: str) -> str:
+    """Biến số mũ Unicode (², ³, ⁻², ⁿ) thành cú pháp ** của SymPy."""
+    text = re.sub(
+        r"⁻([⁰¹²³⁴⁵⁶⁷⁸⁹]+)",
+        lambda m: "**-" + m.group(1).translate(_SUPERSCRIPT_DIGITS),
+        text,
+    )
+    text = re.sub(
+        r"([⁰¹²³⁴⁵⁶⁷⁸⁹]+)",
+        lambda m: "**" + m.group(1).translate(_SUPERSCRIPT_DIGITS),
+        text,
+    )
+    return text.replace("⁻", "-").replace("ⁿ", "**n")
+
+
+def _normalize_glyphs(text: str) -> str:
+    """Ngoặc nhọn {}, ký hiệu phép toán (· × ∗ ∙ ÷), chỉ số dưới -> cú pháp SymPy."""
+    text = text.replace("{", "(").replace("}", ")")
+    for glyph, repl in (("·", "*"), ("×", "*"), ("∗", "*"), ("∙", "*"), ("÷", "/")):
+        text = text.replace(glyph, repl)
+    return text.translate(_SUBSCRIPT_CHARS)
+
+
+def _fix_log_forms(text: str) -> str:
+    """log10(x) -> log(x,10); lg(x) -> log(x,10); log2(x) -> log(x,2); loge(x) -> log(x)."""
+    text = _LOG_BASE_RE.sub(lambda m: f"log({m.group(2)},{m.group(1)})", text)
+    text = _LG_RE.sub(lambda m: f"log({m.group(1)},10)", text)
+    text = _LOGE_RE.sub("log(", text)
+    return text
+
+
+def _preprocess_input(raw: str) -> str:
+    """Chuẩn hóa chuỗi thô thành dạng SymPy chấp nhận được (chưa parse).
 
     - Bỏ phần vế trái (y = ..., f(x) = ...) nếu có.
-    - Chuyển ^ thành **, 4x thành 4*x, hỗ trợ viết tắt.
+    - Ngoặc nhọn {}, số mũ Unicode, ký hiệu · × ÷, lg()/log10()/log2().
     """
     text = raw.strip()
     if not text:
@@ -56,6 +95,15 @@ def normalize_expression(raw: str) -> str:
             break
     if not text:
         raise MathEngineError("Không tìm thấy vế phải của biểu thức.")
+    text = _expand_superscripts(text)
+    text = _normalize_glyphs(text)
+    text = _fix_log_forms(text)
+    return text
+
+
+def normalize_expression(raw: str) -> str:
+    """Chuẩn hóa biểu thức thô thành dạng SymPy (dạng srepr)."""
+    text = _preprocess_input(raw)
     try:
         expr = parse_expr(text, transformations=_TRANSFORMATIONS)
     except _SYMPIFY_ERRORS as exc:
@@ -406,11 +454,7 @@ def _analyze_non_polynomial(
 def analyze_expression(raw: str) -> MathAnalyzeResponse:
     """Phân tích biểu thức, ưu tiên hàm bậc hai (phạm vi MVP)."""
     x = sp.Symbol("x")
-    text = raw.strip()
-    for prefix in ("y=", "y =", "f(x)=", "f(x) =", "f(x):"):
-        if text.startswith(prefix):
-            text = text[len(prefix):].strip()
-            break
+    text = _preprocess_input(raw)
     try:
         expr = parse_expr(text, transformations=_TRANSFORMATIONS)
     except _SYMPIFY_ERRORS as exc:

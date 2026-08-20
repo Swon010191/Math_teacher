@@ -8,6 +8,12 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Nhận đa dạng cách viết biểu thức**: tầng tiền xử lý `_preprocess_input`
+  nhận thêm ngoặc nhọn LaTeX/OCR (`3^{x}`, `2*3**{x}-1`), số mũ Unicode
+  (`x²-4x+3`, `x⁻¹`), ký hiệu phép toán (`·` `×` `÷` -> `*` `/`), và các cách
+  viết logarit: `lg(x)`/`log10(x)` = cơ số 10, `log2(x)`/`log₂(x)` = cơ số 2,
+  `loge(x)` = ln; `log(x)` không ghi cơ số vẫn là ln (khớp SymPy). Biểu thức
+  có hệ số là ký tự (`a*3^x`) vẫn báo lỗi rõ ràng.
 - **Mở rộng Math Engine thêm 4 loại hàm**: hàm phân thức `(ax+b)/(cx+d)`,
   lượng giác `a*sin(bx+c)+d` / `a*cos(bx+c)+d`, mũ `a*b^x+c` và logarit
   `a*log(x,base)+c`. API `/api/math/analyze` trả thêm `RationalFeatures`,

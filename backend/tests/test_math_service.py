@@ -234,6 +234,88 @@ class TestAnalyzeLogarithmic:
         assert lg.x_intercept == pytest.approx(math.e)
 
 
+class TestPreprocessInput:
+    """Các dạng viết biểu thức khác nhau (ngoặc nhọn, mũ Unicode, ký hiệu, lg)."""
+
+    def test_ngoac_nhon_trong_so_mu(self) -> None:
+        result = analyze_expression("2*3**{x}-1")
+        assert result.kind == "exponential"
+        e = result.exponential
+        assert e.base == 3
+        assert e.c == -1
+
+    def test_ngoac_nhon_latex_3_mu_x(self) -> None:
+        result = analyze_expression("3^{x}")
+        assert result.kind == "exponential"
+        assert result.exponential.base == 3
+
+    def test_ngoac_nhon_voi_ve_trai(self) -> None:
+        result = analyze_expression("y=2*3^{x}")
+        assert result.kind == "exponential"
+
+    def test_ngoac_nhon_bieu_thuc_so_mu(self) -> None:
+        result = analyze_expression("2^{(x)}-3")
+        assert result.kind == "exponential"
+        assert result.exponential.c == -3
+
+    def test_mu_unicode_bac_hai(self) -> None:
+        result = analyze_expression("x²-4x+3")
+        assert result.kind == "quadratic"
+        q = result.quadratic
+        assert q.a == 1
+        assert q.b == -4
+        assert q.c == 3
+
+    def test_mu_unicode_bac_ba_bi_tu_choi(self) -> None:
+        with pytest.raises(MathEngineError):
+            analyze_expression("2x³+1")
+
+    def test_mu_unicode_am(self) -> None:
+        result = analyze_expression("x⁻¹+1")
+        assert result.kind == "rational"
+
+    def test_nhan_giua_la_cham(self) -> None:
+        result = analyze_expression("2·3^x")
+        assert result.kind == "exponential"
+        assert result.exponential.a == 2
+
+    def test_nhan_giua_la_cham_nhan(self) -> None:
+        result = analyze_expression("2×3^x")
+        assert result.kind == "exponential"
+
+    def test_chia_la_gach_cheo(self) -> None:
+        result = analyze_expression("x÷2+1")
+        assert result.kind == "linear"
+
+    def test_lg_la_log_co_so_10(self) -> None:
+        result = analyze_expression("lg(x)")
+        assert result.kind == "logarithmic"
+        assert result.logarithmic.base == 10
+
+    def test_log10_la_log_co_so_10(self) -> None:
+        result = analyze_expression("log10(x)")
+        assert result.kind == "logarithmic"
+        assert result.logarithmic.base == 10
+
+    def test_log2_la_log_co_so_2(self) -> None:
+        result = analyze_expression("log2(x)")
+        assert result.kind == "logarithmic"
+        assert result.logarithmic.base == 2
+
+    def test_subscript_co_so_log(self) -> None:
+        result = analyze_expression("log₂(x)")
+        assert result.kind == "logarithmic"
+        assert result.logarithmic.base == 2
+
+    def test_log_khong_co_so_van_la_ln(self) -> None:
+        result = analyze_expression("log(x)")
+        assert result.logarithmic.base == pytest.approx(math.e)
+
+    def test_he_so_ky_tu_bi_tu_choi(self) -> None:
+        with pytest.raises(MathEngineError):
+            analyze_expression("a*3**{x}-1")
+
+
 class TestUnsupported:
     def test_bac_ba_bi_tu_choi(self) -> None:
         with pytest.raises(MathEngineError):

@@ -178,8 +178,9 @@ pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
 ### Luồng chính 2 — Gõ công thức (dự phòng)
 
 1. Bấm **Công thức**.
-2. Nhập biểu thức (hỗ trợ `x^2`, `4x`, `x**2`, `sin(x)`, `(2x+1)/(x-1)`,
-   `2^x`, `log(x,10)`...), ví dụ `x^2 - 4x + 3`, bấm Enter.
+2. Nhập biểu thức (hỗ trợ nhiều dạng viết: `x^2`, `4x`, `x**2`, `x²`,
+   `sin(x)`, `(2x+1)/(x-1)`, `2^x`, `3^{x}`, `2·3^x`, `log(x,10)`,
+   `lg(x)`, `log10(x)`, `log2(x)`, `ln(x)`...), ví dụ `x^2 - 4x + 3`, bấm Enter.
 3. Activity tương ứng xuất hiện trên bảng (hàm bậc hai, bậc nhất, phân thức,
    lượng giác `sin/cos`, mũ, logarit) — mỗi loại có slider hệ số và bộ nút
    hiện/ẩn đặc trưng (tiệm cận, nghiệm, đường trung bình...).
@@ -196,7 +197,7 @@ pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
 ## Kiểm thử
 
 ```bash
-# Backend (87 test)
+# Backend (103 test)
 cd backend
 pytest
 
