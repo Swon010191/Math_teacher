@@ -234,9 +234,19 @@ test('bấm vào "AI sẵn sàng": xem trạng thái provider và đổi provide
   await expect(
     page.getByText('Khả dụng — Giả lập, không cần kết nối'),
   ).toBeVisible({ timeout: 15_000 });
+  // Pix2Text có thể "Khả dụng" (đã cài) hoặc "Chưa khả dụng" (máy chưa cài) tùy môi trường.
   await expect(
-    page.getByText(/Chưa khả dụng — Chưa kết nối được Pix2Text/),
-  ).toBeVisible({ timeout: 15_000 });
+    page
+      .locator('.backend-popover-option')
+      .filter({ hasText: 'Pix2Text' })
+      .locator('.backend-provider-status'),
+  ).toContainText(/Khả dụng|Chưa khả dụng/, { timeout: 15_000 });
+  await expect(
+    page
+      .locator('.backend-popover-option')
+      .filter({ hasText: 'Ollama Vision' })
+      .locator('.backend-provider-status'),
+  ).toContainText(/Khả dụng|Chưa khả dụng/, { timeout: 15_000 });
 
   await page.getByRole('button', { name: 'Kiểm tra lại' }).click();
   await expect(page.locator('.backend-provider-status')).toHaveCount(3, {

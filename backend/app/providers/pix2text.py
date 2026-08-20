@@ -53,7 +53,7 @@ class Pix2TextProvider(RecognitionProvider):
             response = self._client.post(
                 f"{self._url}/pix2text",
                 files={"image": ("region.png", image_bytes, "image/png")},
-                data={"image_type": "formula"},
+                data={"file_type": "formula", "resized_shape": "768"},
             )
             response.raise_for_status()
             payload = response.json()
@@ -64,9 +64,12 @@ class Pix2TextProvider(RecognitionProvider):
             ) from exc
 
         results = payload.get("results") or []
-        if not results:
-            raise RuntimeError("Pix2Text không nhận dạng được nội dung nào trong vùng.")
-        raw_text = str(results[0].get("text", "")).strip()
+        if isinstance(results, str):
+            raw_text = results.strip()
+        else:
+            if not results:
+                raise RuntimeError("Pix2Text không nhận dạng được nội dung nào trong vùng.")
+            raw_text = str(results[0].get("text", "")).strip()
         if not raw_text:
             raise RuntimeError("Pix2Text trả về công thức rỗng.")
         latex = raw_text

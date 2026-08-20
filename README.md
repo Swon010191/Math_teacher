@@ -106,6 +106,39 @@ Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến mô
 | `ollama_vision` | Cài [Ollama](https://ollama.com) rồi `ollama pull llava` (hoặc Qwen-VL); đảm bảo `ollama serve` đang chạy | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
 | `pix2text` | `pip install pix2text[serve]` rồi chạy `p2t serve` | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
 
+#### Hướng dẫn cài đặt chi tiết (khuyến nghị, dựa trên máy Windows)
+
+> Cả hai dịch vụ được cài **trong thư mục `ai-tools/` của dự án** — dành riêng cho
+> máy cá nhân, **không được đẩy lên git** (đã nằm ngoài vùng theo dõi). Khi tải mã
+> nguồn mới về, bạn phải cài lại các bước dưới đây.
+
+**1. Ollama Vision** (nhận dạng bằng LLM thị giác `llava`)
+
+```powershell
+# Tải bản portable: https://ollama.com/download/windows → giải nén vào ai-tools\ollama
+# Đặt biến môi trường (máy này đã đặt): OLLAMA_MODELS=<project>\ai-tools\ollama\models
+ai-tools\ollama\ollama.exe pull llava       # model thị giác (≈ 4.7 GB)
+ai-tools\ollama\ollama.exe pull llama3.2    # model chat cho Teacher Copilot (≈ 2.0 GB)
+ai-tools\ollama\ollama.exe serve            # chạy server tại http://localhost:11434
+```
+
+**2. Pix2Text** (nhận dạng công thức chuyên dụng)
+
+```powershell
+cd ai-tools\pix2text
+py -3.14 -m venv .venv
+.venv\Scripts\python -m pip install -U pip pix2text[serve]   # tự tải các model MFD/MFR về
+# Đặt biến môi trường (máy này đã đặt): PIX2TEXT_HOME=<project>\ai-tools\pix2text\.pix2text
+.venv\Scripts\p2t.exe serve --port 8503       # chạy server tại http://localhost:8503
+```
+
+**3. Khởi động lại sau khi tắt máy:** chỉ cần chạy lại 2 lệnh `ollama serve` và
+`p2t serve --port 8503` ở trên (máy này đã tạo 2 tác vụ Windows **Task Scheduler**
+`P2TServe` và `MathBackend` để tự khởi động khi đăng nhập). Khi backend chạy rồi,
+mở giao diện và bấm **"AI sẵn sàng"** → popover liệt kê 3 provider (Mock / Ollama
+Vision / Pix2Text), bấm **"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh
+✓ là sẵn sàng dùng được.
+
 **Teacher Copilot:** mặc định dùng `rule_based` (nội dung sinh theo quy tắc,
 không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `ollama
 pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
@@ -152,7 +185,7 @@ pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
 ## Kiểm thử
 
 ```bash
-# Backend (62 test)
+# Backend (63 test)
 cd backend
 pytest
 

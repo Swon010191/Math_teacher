@@ -106,6 +106,16 @@ class TestPix2TextProvider:
         assert result.expression == "x**2 - 4x + 3"
         assert result.confidence == pytest.approx(0.9)
 
+    def test_recognize_results_la_chuoi(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"results": "y = x^2 - 4x + 3"})
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = Pix2TextProvider(url="http://p2t:8503", http_client=client)
+        result = provider.recognize(image_base64="QUJD")
+        assert result.provider == "pix2text"
+        assert result.expression == "x**2 - 4x + 3"
+
     def test_khong_nhan_dang_duoc(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, json={"results": []})
