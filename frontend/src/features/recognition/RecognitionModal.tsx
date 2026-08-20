@@ -40,7 +40,13 @@ export function RecognitionModal({
 
   const handleConfirm = async () => {
     setBusy(true);
-    await onConfirm(value);
+    try {
+      await onConfirm(value);
+    } catch {
+      // Parent đã báo lỗi qua toast; không để rò unhandled rejection.
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -63,11 +69,14 @@ export function RecognitionModal({
           className="modal-input"
           value={value}
           onChange={(e) => setValue(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Escape') onCancel();
+          }}
           placeholder="ví dụ: x**2 - 4*x + 3"
           autoFocus
         />
         <div className="modal-actions">
-          <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>
+          <button className="btn btn-secondary" onClick={onCancel}>
             Hủy
           </button>
           <button className="btn btn-primary" onClick={handleConfirm} disabled={busy}>

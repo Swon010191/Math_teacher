@@ -126,6 +126,47 @@ test('công cụ Chọn: khoanh vùng chọn nét vẽ và kéo di chuyển cùn
   await expect(page.locator('.toast')).toContainText('Đã xóa 2 đối tượng');
 });
 
+test('công thức không xác định được: báo lỗi và vẫn thoát được', async ({ page }) => {
+  await page.goto('/');
+  const board = page.locator('.board-container');
+
+  await page.getByRole('button', { name: 'Bút' }).click();
+  const box = await board.boundingBox();
+  if (!box) throw new Error('Không tìm thấy vùng bảng');
+  await page.mouse.move(box.x + 300, box.y + 250);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 420, box.y + 260);
+  await page.mouse.up();
+
+  await page.getByRole('button', { name: 'AI' }).click();
+  await page.mouse.move(box.x + 260, box.y + 210);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 420, box.y + 300);
+  await page.mouse.up();
+
+  const dialog = page.getByRole('dialog', { name: 'Xác nhận kết quả nhận dạng' });
+  await expect(dialog).toBeVisible({ timeout: 15_000 });
+
+  await dialog.getByRole('textbox').fill('abc');
+  await dialog.getByRole('button', { name: 'Xác nhận và tạo activity' }).click();
+  await expect(page.locator('.toast')).toContainText('Lỗi tạo activity', { timeout: 15_000 });
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('button', { name: 'Xác nhận và tạo activity' })).toBeEnabled();
+
+  await dialog.getByRole('button', { name: 'Hủy' }).click();
+  await expect(dialog).not.toBeVisible();
+});
+
+test('nhập công thức vô nghĩa bằng bàn phím: báo lỗi, không treo', async ({ page }) => {
+  await page.goto('/');
+  await page.getByRole('button', { name: 'Công thức' }).click();
+  const input = page.getByPlaceholder('x^2 - 4x + 3');
+  await input.fill('abc');
+  await input.press('Enter');
+  await expect(page.locator('.toast')).toContainText('Lỗi', { timeout: 15_000 });
+  await expect(page.getByPlaceholder('x^2 - 4x + 3')).not.toBeVisible();
+});
+
 test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyển theo', async ({ page }) => {
   await page.goto('/');
   const board = page.locator('.board-container');

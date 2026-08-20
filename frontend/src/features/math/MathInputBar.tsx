@@ -13,8 +13,13 @@ export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
   const handleSubmit = async () => {
     if (!value.trim() || busy) return;
     setBusy(true);
-    await onSubmit(value.trim());
-    setBusy(false);
+    try {
+      await onSubmit(value.trim());
+    } catch {
+      // Parent đã báo lỗi qua toast; không để rò unhandled rejection.
+    } finally {
+      setBusy(false);
+    }
   };
 
   return (
@@ -34,7 +39,7 @@ export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
       <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={busy}>
         {busy ? 'Đang phân tích...' : 'Phân tích'}
       </button>
-      <button className="btn btn-secondary" onClick={onCancel} disabled={busy}>
+      <button className="btn btn-secondary" onClick={onCancel}>
         Hủy
       </button>
     </div>

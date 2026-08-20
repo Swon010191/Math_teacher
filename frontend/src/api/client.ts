@@ -7,6 +7,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   try {
     response = await fetch(`${BASE_URL}${path}`, {
       headers: { 'Content-Type': 'application/json' },
+      signal: AbortSignal.timeout(20_000),
       ...init,
     });
   } catch {

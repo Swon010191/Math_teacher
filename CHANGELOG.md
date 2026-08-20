@@ -32,12 +32,18 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
   hướng dẫn cài đặt, issue templates (bug tracker GitHub Issues).
 
 ### Đã sửa (Stage 1)
+- Hết lỗi treo "Đang phân tích...": nút xác nhận (RecognitionModal) và nút phân
+  tích (MathInputBar) luôn thoát khỏi trạng thái busy dù thành công hay thất bại
+  (try/finally), nút Hủy luôn bấm được, phím Escape đóng được modal.
+- API client có timeout 20 giây (AbortSignal) - không treo vô hạn khi backend chết.
 - Công cụ Chọn và Xóa chuyển sang **khoanh vùng (marquee)**: kéo khung bao quanh
   để chọn/xóa toàn bộ đối tượng trong vùng, không cần bấm trúng từng nét vẽ.
 - Chọn nhiều đối tượng cùng lúc và kéo di chuyển cả nhóm; activity cũng được
   khoanh vùng chọn và hiển thị viền xanh khi được chọn.
 - Thêm 2 test E2E cho khoanh vùng Chọn và Xóa (tổng 5 test E2E).
 - Thêm 1 test E2E cho công cụ Di chuyển (tổng 6 test E2E).
+- Thêm 2 test E2E cho luồng lỗi: công thức không xác định được vẫn thoát được
+  (tổng 8 test E2E) + 4 test đơn vị mới cho RecognitionModal và MathInputBar.
 
 ### Sắp tới
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.
