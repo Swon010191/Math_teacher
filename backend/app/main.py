@@ -5,7 +5,8 @@ from __future__ import annotations
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import math, recognize
+from app.api import copilot, math, recognize
+from app.services.copilot_service import get_active_copilot_provider
 from app.services.recognition_settings import get_active_provider
 
 app = FastAPI(
@@ -30,13 +31,15 @@ app.add_middleware(
 
 app.include_router(math.router)
 app.include_router(recognize.router)
+app.include_router(copilot.router)
 
 
 @app.get("/health", tags=["system"])
 def health() -> dict[str, str]:
-    """Kiểm tra server còn sống + provider nhận dạng đang dùng."""
+    """Kiểm tra server còn sống + provider nhận dạng/Copilot đang dùng."""
     return {
         "status": "ok",
         "service": "math-engine",
         "recognition_provider": get_active_provider(),
+        "copilot_provider": get_active_copilot_provider(),
     }

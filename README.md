@@ -16,8 +16,9 @@ trải nghiệm giảng dạy trực quan, tương tác và **do giáo viên ki�
   nút hiện/ẩn đáp án, chuỗi bước giảng dạy) nằm ngay trên bảng.
 - **Recognition Engine** — Nhận dạng nét viết tay thành công thức toán học, kèm
   bước xác nhận/sửa của giáo viên (Stage 1 dùng Mock Provider).
-- **Teacher Copilot (D)** *(giai đoạn sau)* — AI tạo giải thích, câu hỏi, ví dụ
-  theo cấp học; chạy local, không bắt buộc API key.
+- **Teacher Copilot (D)** — AI đề xuất nội dung giảng dạy (tóm tắt, câu hỏi gợi
+  mở, ví dụ, chuỗi bước) cho từng hoạt động; giáo viên duyệt trước khi lên
+  bảng; chạy local, không bắt buộc API key.
 - **Open Teaching Activity (C)** *(giai đoạn sau)* — Định dạng JSON mở để lưu,
   chia sẻ và mở rộng hoạt động giảng dạy.
 
@@ -103,6 +104,15 @@ Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến mô
 | `ollama_vision` | `ollama pull llava` (hoặc Qwen-VL) | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
 | `pix2text` | `pip install pix2text` + `p2t serve` | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
 
+**Teacher Copilot:** mặc định dùng `rule_based` (nội dung sinh theo quy tắc,
+không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `ollama
+pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
+`OLLAMA_MODEL_COPILOT`) trong `backend/.env`.
+
+> **Trình tự gợi ý giảng dạy:** mở activity → bấm **💡 Gợi ý** → xem đề xuất
+> (nội dung chỉ là gợi ý, số liệu đến từ Math Engine) → bấm **Đưa lên bảng** để
+> duyệt; gợi ý xuất hiện ngay trong activity và được lưu cùng bảng.
+
 > **Chọn / Xóa theo khoanh vùng:** không cần bấm trúng đối tượng — chỉ cần kéo
 > một khung bao quanh vùng muốn chọn hoặc muốn xóa. Kết quả hiển thị ngay.
 
@@ -139,15 +149,15 @@ Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến mô
 ## Kiểm thử
 
 ```bash
-# Backend (41 test)
+# Backend (49 test)
 cd backend
 pytest
 
-# Frontend (26 test đơn vị)
+# Frontend (30 test đơn vị)
 cd frontend
 npm test
 
-# E2E (10 test luồng chính — tự khởi động backend + frontend)
+# E2E (11 test luồng chính — tự khởi động backend + frontend)
 cd frontend
 npm run test:e2e
 ```

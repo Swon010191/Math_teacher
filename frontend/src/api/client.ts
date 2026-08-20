@@ -1,5 +1,7 @@
 /** Client gọi backend Math Engine (FastAPI). */
 
+import type { CopilotSuggestion } from '../features/copilot/copilotTypes';
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
@@ -110,6 +112,7 @@ export interface ActivityModel {
   };
   widgets: { type: string; parameters?: string[] }[];
   steps: { visible: string[] }[];
+  copilot?: CopilotSuggestion;
 }
 
 export async function analyzeExpression(
@@ -137,5 +140,19 @@ export async function recognizeRegion(
   return request<RecognizeResult>('/api/recognize', {
     method: 'POST',
     body: JSON.stringify({ image_base64: imageBase64, hint }),
+  });
+}
+
+export async function suggestCopilot(
+  activity: ActivityModel,
+): Promise<CopilotSuggestion> {
+  return request<CopilotSuggestion>('/api/copilot/suggest', {
+    method: 'POST',
+    body: JSON.stringify({
+      expression: activity.math.expression,
+      activity_type: activity.type,
+      math: activity.math,
+      grade_level: 'THCS',
+    }),
   });
 }

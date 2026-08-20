@@ -10,6 +10,8 @@ import { clearBoard, loadBoard, saveBoard } from '../../api/storage';
 import { makeId, useAppStore } from '../../stores/appStore';
 import { LinearActivity } from '../activities/LinearActivity';
 import { QuadraticActivity } from '../activities/QuadraticActivity';
+import { CopilotPanel } from '../copilot/CopilotPanel';
+import type { CopilotSuggestion } from '../copilot/copilotTypes';
 import { MathInputBar } from '../math/MathInputBar';
 import { RecognitionModal } from '../recognition/RecognitionModal';
 import { Toast } from '../../components/Toast';
@@ -38,6 +40,7 @@ export function Whiteboard() {
   const selectedIds = useAppStore((s) => s.selectedIds);
 
   const [mathInputOpen, setMathInputOpen] = useState(false);
+  const [copilotFor, setCopilotFor] = useState<string | null>(null);
 
   useEffect(() => {
     if (!toast) return;
@@ -193,6 +196,16 @@ export function Whiteboard() {
     showToast('Đã xóa bảng');
   }, [restoreBoard, showToast]);
 
+  const handleApproveCopilot = useCallback(
+    (activityId: string, suggestion: CopilotSuggestion) => {
+      const current = activities[activityId] as ActivityModel | undefined;
+      if (current) upsertActivity(activityId, { ...current, copilot: suggestion });
+      setCopilotFor(null);
+      showToast('Đã đưa gợi ý giảng dạy lên bảng');
+    },
+    [activities, upsertActivity, showToast],
+  );
+
   return (
     <div className="whiteboard">
       <Toolbar
@@ -225,6 +238,7 @@ export function Whiteboard() {
                 onSelect={() => setSelected([obj.id])}
                 onUpdate={updateObject}
                 onRemove={removeObject}
+                onOpenCopilot={() => setCopilotFor(obj.activityId)}
               />
             ))}
         </div>
@@ -243,6 +257,16 @@ export function Whiteboard() {
         onCancel={clearConfirm}
         onConfirm={handleConfirmExpression}
       />
+      <CopilotPanel
+        open={copilotFor !== null}
+        activity={
+          copilotFor
+            ? (activities[copilotFor] as ActivityModel | undefined)
+            : undefined
+        }
+        onClose={() => setCopilotFor(null)}
+        onApprove={(s) => handleApproveCopilot(copilotFor!, s)}
+      />
       <Toast message={toast} />
     </div>
   );
@@ -256,6 +280,7 @@ function ActivityFrame({
   onSelect,
   onUpdate,
   onRemove,
+  onOpenCopilot,
 }: {
   obj: ActivityObject;
   activity?: ActivityModel;
@@ -264,9 +289,11 @@ function ActivityFrame({
   onSelect: () => void;
   onUpdate: (id: string, patch: Partial<BoardObject>) => void;
   onRemove: (id: string) => void;
+  onOpenCopilot: () => void;
 }) {
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
+  const [showCopilot, setShowCopilot] = useState(true);
 
   const style: React.CSSProperties = {
     transform: `translate(${viewport.x + obj.x * viewport.scale}px, ${viewport.y + obj.y * viewport.scale}px)`,
@@ -333,6 +360,13 @@ function ActivityFrame({
         title="Kéo để di chuyển"
       >
         <span>Hoạt động: {activity?.source.latex ?? '...'}</span>
+        <button
+          className="activity-copilot-btn"
+          onClick={onOpenCopilot}
+          title="Mở trợ lý giảng dạy (Teacher Copilot)"
+        >
+          💡 Gợi ý
+        </button>
         <button className="activity-close" onClick={() => onRemove(obj.id)} title="Xóa hoạt động">
           ×
         </button>
@@ -345,6 +379,30 @@ function ActivityFrame({
         )
       ) : (
         <div className="activity-loading">Đang tải activity...</div>
+      )}
+      {activity?.copilot && (
+        <div className="activity-copilot" data-testid="activity-copilot">
+          <button
+            className="activity-copilot-toggle"
+            onClick={() => setShowCopilot((s) => !s)}
+            title="Hiện/ẩn gợi ý giảng dạy"
+          >
+            {showCopilot ? '▼' : '▶'} 💡 Gợi ý giảng dạy (đã duyệt)
+          </button>
+          {showCopilot && (
+            <div className="activity-copilot-body">
+              <p className="copilot-summary">{activity.copilot.summary}</p>
+              <ul>
+                {activity.copilot.key_points.slice(0, 4).map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+              <p className="copilot-provider-note">
+                Đề xuất bởi Copilot · kiểm tra trước khi sử dụng
+              </p>
+            </div>
+          )}
+        </div>
       )}
       <div className="activity-resize" onPointerDown={onResizePointerDown} title="Kéo để thay đổi kích thước" />
     </div>

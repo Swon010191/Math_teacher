@@ -20,6 +20,63 @@ class TestHealth:
         data = response.json()
         assert data["status"] == "ok"
         assert data["recognition_provider"] == "mock"
+        assert data["copilot_provider"] == "rule_based"
+
+
+class TestCopilot:
+    def test_suggest_quadratic(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/copilot/suggest",
+            json={
+                "expression": "x**2 - 4*x + 3",
+                "activity_type": "quadratic_function",
+                "math": {
+                    "expression": "x**2 - 4*x + 3",
+                    "a": 1.0,
+                    "b": -4.0,
+                    "c": 3.0,
+                    "vertex": [2.0, -1.0],
+                    "roots": [1.0, 3.0],
+                    "axis": "x = 2",
+                    "y_intercept": 3.0,
+                    "discriminant": 4.0,
+                    "direction": "up",
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] == "rule_based"
+        assert "parabol" in data["summary"]
+        assert len(data["key_points"]) >= 2
+        assert len(data["questions"]) >= 2
+        assert len(data["examples"]) >= 1
+        assert len(data["teaching_steps"]) >= 2
+        assert 0.0 <= data["confidence"] <= 1.0
+
+    def test_suggest_linear(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/copilot/suggest",
+            json={
+                "expression": "2*x + 1",
+                "activity_type": "linear_function",
+                "math": {
+                    "expression": "2*x + 1",
+                    "a": 2.0,
+                    "b": 1.0,
+                    "root": -0.5,
+                    "y_intercept": 1.0,
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "đường thẳng" in data["summary"]
+        assert "(-0.5; 0)" in data["key_points"][3]
+
+    def test_suggest_thieu_truong(self, client: TestClient) -> None:
+        response = client.post("/api/copilot/suggest", json={})
+        assert response.status_code == 422
 
 
 class TestRecognizeProvider:

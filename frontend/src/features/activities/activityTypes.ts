@@ -1,5 +1,7 @@
 /** Activity Model - định dạng mở (schemaVersion 1.0). */
 
+import type { CopilotSuggestion } from '../copilot/copilotTypes';
+
 export interface ActivitySource {
   latex: string;
   confidence: number;
@@ -36,4 +38,5 @@ export interface ActivityModel {
   math: ActivityMath;
   widgets: ActivityWidget[];
   steps: ActivityStep[];
+  copilot?: CopilotSuggestion;
 }

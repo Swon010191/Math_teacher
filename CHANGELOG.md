@@ -8,6 +8,13 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Teacher Copilot (Stage 3, phần lõi)**: nút "💡 Gợi ý" trên mỗi activity mở
+  panel đề xuất nội dung giảng dạy (tóm tắt, kiến thức trọng tâm, câu hỏi gợi
+  mở, ví dụ minh họa, chuỗi bước giảng dạy) — **giáo viên duyệt rồi mới lên
+  bảng**. API mới `POST /api/copilot/suggest`; mặc định dùng
+  `RuleBasedCopilotProvider` (không cần AI), có thể bật `COPILOT_PROVIDER=ollama`
+  để dùng LLM local (Ollama) với `OLLAMA_MODEL_COPILOT`; mọi số liệu đều lấy từ
+  Math Engine, LLM không được tự tính toán.
 - **CI tự động (GitHub Actions)**: mỗi lần push lên main hoặc mở PR sẽ chạy
   backend pytest (41 test), frontend vitest + build (26 test) và E2E Playwright
   (10 test); Playwright có thể nhận `BACKEND_PYTHON` để chạy trên nhiều hệ điều hành.
@@ -67,9 +74,12 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
   mock) - tổng backend 37.
 - Thêm 5 test Provider API/health + 5 test Toolbar popover - tổng backend 41,
   frontend 26, E2E 10.
+- Thêm Teacher Copilot: 8 test backend (API + provider rule_based/ollama với
+  HTTP mock) + 4 test CopilotPanel + 1 test E2E - tổng backend 49, frontend 30,
+  E2E 11.
 
 ### Sắp tới
-- Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.
+- Teacher Copilot nâng cao: chọn cấp học, custom model/LLM provider.
 - Open Teaching Activity Platform - plugin, chia sẻ cộng đồng.
-- Các loại hàm khác: bậc nhất, phân thức, sin/cos, logarit, mũ.
+- Các loại hàm khác: phân thức, sin/cos, logarit, mũ.
 - Tích hợp Recognition thực (Ollama + LLaVA/Qwen-VL, Pix2Text) thay Mock Provider.

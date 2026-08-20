@@ -6,8 +6,30 @@ import httpx
 import pytest
 
 from app.providers.normalize import to_expression
+from app.providers.ollama_copilot import OllamaCopilotProvider
 from app.providers.ollama_vision import OllamaVisionProvider
 from app.providers.pix2text import Pix2TextProvider
+from app.providers.rule_based_copilot import RuleBasedCopilotProvider
+from app.schemas.copilot import CopilotRequest, CopilotMathInput
+
+
+def _quadratic_request() -> CopilotRequest:
+    return CopilotRequest(
+        expression="x**2 - 4*x + 3",
+        activity_type="quadratic_function",
+        math=CopilotMathInput(
+            expression="x**2 - 4*x + 3",
+            a=1.0,
+            b=-4.0,
+            c=3.0,
+            vertex=[2.0, -1.0],
+            roots=[1.0, 3.0],
+            axis="x = 2",
+            y_intercept=3.0,
+            discriminant=4.0,
+            direction="up",
+        ),
+    )
 
 
 class TestNormalize:
@@ -91,3 +113,77 @@ class TestPix2TextProvider:
         provider = Pix2TextProvider(url="http://p2t:8503", http_client=client)
         with pytest.raises(RuntimeError, match="không nhận dạng được"):
             provider.recognize(image_base64="QUJD")
+
+
+class TestRuleBasedCopilot:
+    def test_suggest_quadratic(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        result = provider.suggest(_quadratic_request())
+        assert result.provider == "rule_based"
+        assert "parabol" in result.summary
+        assert any("I(2; -1)" in p for p in result.key_points)
+        assert result.examples
+
+    def test_suggest_linear(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="2*x + 1",
+            activity_type="linear_function",
+            math=CopilotMathInput(
+                expression="2*x + 1", a=2.0, b=1.0, root=-0.5, y_intercept=1.0
+            ),
+        )
+        result = provider.suggest(request)
+        assert "đường thẳng" in result.summary
+        assert any("(-0.5; 0)" in p for p in result.key_points)
+
+
+class TestOllamaCopilot:
+    def test_suggest_parse_json(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = request.read().decode()
+            assert '"format":"json"' in body
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": (
+                            '{"summary": "Giải thích", "key_points": ["Điểm 1"], '
+                            '"questions": ["Câu hỏi?"], '
+                            '"examples": [{"prompt": "VD?", "solution": "Giải"}], '
+                            '"teaching_steps": ["Bước 1"], "confidence": 0.9}'
+                        )
+                    }
+                },
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = OllamaCopilotProvider(
+            url="http://ollama:11434", model="llama3.2", http_client=client
+        )
+        result = provider.suggest(_quadratic_request())
+        assert result.provider == "ollama"
+        assert result.summary == "Giải thích"
+        assert result.confidence == pytest.approx(0.9)
+
+    def test_json_sai_schema(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"message": {"content": "{oops"}})
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = OllamaCopilotProvider(
+            url="http://ollama:11434", model="llama3.2", http_client=client
+        )
+        with pytest.raises(RuntimeError, match="JSON"):
+            provider.suggest(_quadratic_request())
+
+    def test_khong_ket_noi_duoc(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            raise httpx.ConnectError("connection refused", request=request)
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        provider = OllamaCopilotProvider(
+            url="http://localhost:11434", model="llama3.2", http_client=client
+        )
+        with pytest.raises(RuntimeError, match="Ollama"):
+            provider.suggest(_quadratic_request())

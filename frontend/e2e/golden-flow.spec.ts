@@ -242,3 +242,24 @@ test('bấm vào "AI sẵn sàng": xem và đổi provider nhận dạng qua pop
     timeout: 15_000,
   });
 });
+
+test('Teacher Copilot: mở gợi ý giảng dạy, duyệt và hiển thị trên bảng', async ({ page }) => {
+  await page.goto('/');
+
+  await page.getByRole('button', { name: 'Công thức' }).click();
+  const input = page.getByPlaceholder('x^2 - 4x + 3');
+  await input.fill('x^2 - 4x + 3');
+  await input.press('Enter');
+  await expect(page.getByTestId('quadratic-activity')).toBeVisible({ timeout: 15_000 });
+
+  await page.getByRole('button', { name: /Gợi ý/ }).click();
+  const panel = page.getByRole('dialog', { name: 'Trợ lý giảng dạy (Teacher Copilot)' });
+  await expect(panel).toBeVisible({ timeout: 15_000 });
+  await expect(panel).toContainText('Tóm tắt');
+  await expect(panel).toContainText('parabol');
+
+  await panel.getByRole('button', { name: 'Đưa lên bảng' }).click();
+  await expect(page.locator('.toast')).toContainText('Đã đưa gợi ý giảng dạy lên bảng');
+  await expect(page.getByTestId('activity-copilot')).toBeVisible();
+  await expect(page.getByTestId('activity-copilot')).toContainText('Gợi ý giảng dạy (đã duyệt)');
+});
