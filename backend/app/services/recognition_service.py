@@ -1,30 +1,24 @@
-"""Dịch vụ nhận dạng - chọn provider theo cấu hình (RECOGNITION_PROVIDER)."""
+"""Dịch vụ nhận dạng - chọn provider theo cài đặt hiện tại (xem recognition_settings)."""
 
 from __future__ import annotations
-
-import os
 
 from app.providers.base import RecognitionProvider
 from app.providers.mock import MockRecognitionProvider
 from app.providers.ollama_vision import OllamaVisionProvider
 from app.providers.pix2text import Pix2TextProvider
 from app.schemas.recognition import RecognizeResult
+from app.services.recognition_settings import get_active_provider
 
 
 def _build_provider() -> RecognitionProvider:
-    name = os.environ.get("RECOGNITION_PROVIDER", "mock").strip().lower()
+    name = get_active_provider()
     if name == "mock":
         return MockRecognitionProvider()
     if name == "ollama_vision":
-        return OllamaVisionProvider(
-            url=os.environ.get("OLLAMA_URL", "http://localhost:11434"),
-            model=os.environ.get("OLLAMA_MODEL", "llava"),
-        )
+        return OllamaVisionProvider()
     if name == "pix2text":
-        return Pix2TextProvider(url=os.environ.get("PIX2TEXT_URL", "http://localhost:8503"))
-    raise ValueError(
-        f"RECOGNITION_PROVIDER không hợp lệ: {name!r} (cho phép: mock, ollama_vision, pix2text)"
-    )
+        return Pix2TextProvider()
+    raise ValueError(f"Provider không hợp lệ: {name!r}")
 
 
 def recognize(

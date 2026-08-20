@@ -8,6 +8,11 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Đổi provider nhận dạng ngay trên giao diện**: bấm vào chip "AI sẵn sàng"
+  mở popover xem và chuyển đổi giữa Mock / Ollama Vision / Pix2Text (API mới
+  GET/PUT `/api/recognize/provider`; đổi trong lúc chạy, restart trở về .env).
+- **Sửa đèn AI luôn xanh**: Vite proxy giờ chuyển tiếp cả `/health` về backend
+  (trước đây `/health` bị Vite trả về index.html 200 dù backend chết).
 - **Recognition thật (tùy chọn theo cấu hình)**: `OllamaVisionProvider`
   (LLaVA/Qwen-VL qua Ollama) và `Pix2TextProvider` (Math OCR); chọn bằng
   `RECOGNITION_PROVIDER=mock|ollama_vision|pix2text` trong `.env`.
@@ -56,6 +61,8 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
   1 test E2E (tổng backend 28, frontend 21, E2E 9).
 - Thêm 10 test provider Recognition thật (Ollama Vision + Pix2Text với HTTP
   mock) - tổng backend 37.
+- Thêm 5 test Provider API/health + 5 test Toolbar popover - tổng backend 41,
+  frontend 26, E2E 10.
 
 ### Sắp tới
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.

@@ -6,6 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api import math, recognize
+from app.services.recognition_settings import get_active_provider
 
 app = FastAPI(
     title="AI Teaching Assistant - Math Engine API",
@@ -33,5 +34,9 @@ app.include_router(recognize.router)
 
 @app.get("/health", tags=["system"])
 def health() -> dict[str, str]:
-    """Kiểm tra server còn sống."""
-    return {"status": "ok", "service": "math-engine"}
+    """Kiểm tra server còn sống + provider nhận dạng đang dùng."""
+    return {
+        "status": "ok",
+        "service": "math-engine",
+        "recognition_provider": get_active_provider(),
+    }

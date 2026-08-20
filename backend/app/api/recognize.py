@@ -1,13 +1,32 @@
-"""API Recognition - nhận dạng nét viết tay/vùng ảnh."""
+"""API Recognition - nhận dạng nét viết tay/vùng ảnh + quản lý provider."""
 
 from __future__ import annotations
 
 from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel
 
 from app.schemas.recognition import RecognizeRequest, RecognizeResult
 from app.services.recognition_service import recognize
+from app.services.recognition_settings import (
+    AVAILABLE_PROVIDERS,
+    get_active_provider,
+    set_active_provider,
+)
 
 router = APIRouter(prefix="/api/recognize", tags=["recognition"])
+
+
+class ProviderState(BaseModel):
+    """Trạng thái provider nhận dạng hiện tại."""
+
+    provider: str
+    available: list[str]
+
+
+class SetProviderRequest(BaseModel):
+    """Yêu cầu đổi provider nhận dạng."""
+
+    provider: str
 
 
 @router.post("", response_model=RecognizeResult)
@@ -22,3 +41,25 @@ def recognize_expression(request: RecognizeRequest) -> RecognizeResult:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - lỗi provider
         raise HTTPException(status_code=500, detail=f"Lỗi nhận dạng: {exc}") from exc
+
+
+@router.get("/provider", response_model=ProviderState)
+def get_provider_state() -> ProviderState:
+    """Provider nhận dạng đang dùng và danh sách khả dụng."""
+    return ProviderState(
+        provider=get_active_provider(),
+        available=list(AVAILABLE_PROVIDERS),
+    )
+
+
+@router.put("/provider", response_model=ProviderState)
+def change_provider(request: SetProviderRequest) -> ProviderState:
+    """Đổi provider nhận dạng trong lúc chạy (restart sẽ trở về .env)."""
+    try:
+        set_active_provider(request.provider)
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+    return ProviderState(
+        provider=get_active_provider(),
+        available=list(AVAILABLE_PROVIDERS),
+    )

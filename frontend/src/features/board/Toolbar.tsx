@@ -1,6 +1,11 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
-import { checkHealth } from '../../api/client';
+import {
+  checkHealth,
+  getRecognitionProvider,
+  setRecognitionProvider,
+  type HealthInfo,
+} from '../../api/client';
 import { useAppStore } from '../../stores/appStore';
 import type { Tool } from './types';
 
@@ -12,6 +17,14 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: 'ai', label: 'AI', icon: '✦' },
   { id: 'erase', label: 'Xóa', icon: '⌫' },
 ];
+
+const DEFAULT_PROVIDERS = ['mock', 'ollama_vision', 'pix2text'];
+
+const PROVIDER_LABELS: Record<string, string> = {
+  mock: 'Mock (giả lập)',
+  ollama_vision: 'Ollama Vision (AI thật)',
+  pix2text: 'Pix2Text (AI thật)',
+};
 
 interface ToolbarProps {
   onSave: () => void;
@@ -25,13 +38,32 @@ interface ToolbarProps {
 export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedInput }: ToolbarProps) {
   const tool = useAppStore((s) => s.tool);
   const setTool = useAppStore((s) => s.setTool);
-  const [backendUp, setBackendUp] = useState<boolean | null>(null);
+  const showToast = useAppStore((s) => s.showToast);
+  const [health, setHealth] = useState<HealthInfo | null>(null);
+  const [providerList, setProviderList] = useState<string[]>(DEFAULT_PROVIDERS);
+  const [popoverOpen, setPopoverOpen] = useState(false);
+  const [switching, setSwitching] = useState(false);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     let alive = true;
     const check = async () => {
-      const up = await checkHealth();
-      if (alive) setBackendUp(up);
+      const info = await checkHealth();
+      if (!alive) return;
+      setHealth(info);
+      if (info.connected) {
+        try {
+          const state = await getRecognitionProvider();
+          if (alive) {
+            setProviderList(state.available.length ? state.available : DEFAULT_PROVIDERS);
+            setHealth((prev) =>
+              prev ? { ...prev, provider: state.provider } : prev,
+            );
+          }
+        } catch {
+          /* giữ danh sách mặc định */
+        }
+      }
     };
     check();
     const timer = setInterval(check, 10_000);
@@ -40,6 +72,41 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
       clearInterval(timer);
     };
   }, []);
+
+  useEffect(() => {
+    if (!popoverOpen) return;
+    const onDown = (e: MouseEvent) => {
+      if (containerRef.current && !containerRef.current.contains(e.target as Node)) {
+        setPopoverOpen(false);
+      }
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setPopoverOpen(false);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [popoverOpen]);
+
+  const connected = health?.connected ?? false;
+
+  const changeProvider = async (name: string) => {
+    if (!connected || name === health?.provider || switching) return;
+    setSwitching(true);
+    try {
+      const state = await setRecognitionProvider(name);
+      setHealth((prev) => (prev ? { ...prev, provider: state.provider } : prev));
+      setPopoverOpen(false);
+      showToast(`Đã chuyển sang provider: ${PROVIDER_LABELS[state.provider] ?? state.provider}`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'Không đổi được provider');
+    } finally {
+      setSwitching(false);
+    }
+  };
 
   return (
     <div className="toolbar" role="toolbar" aria-label="Thanh công cụ">
@@ -86,14 +153,44 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
         </button>
       </div>
       <div className="toolbar-hint">Di chuyển: kéo để dời bảng · Bút để vẽ · Chọn/Xóa: khoanh vùng để chọn hoặc xóa · AI: khoanh vùng công thức để nhận dạng · Lăn chuột để phóng to</div>
-      <div
-        className={`backend-status ${backendUp === null ? 'checking' : backendUp ? 'online' : 'offline'}`}
-        title={backendUp ? 'Đã kết nối máy chủ AI' : 'Chưa kết nối máy chủ AI. Chạy: uvicorn app.main:app --port 8000'}
-        role="status"
-        aria-label="Trạng thái máy chủ AI"
-      >
-        <span className="dot" />
-        <span>{backendUp === null ? 'Đang kiểm tra...' : backendUp ? 'AI sẵn sàng' : 'AI chưa kết nối'}</span>
+      <div className="backend-status-wrap" ref={containerRef}>
+        <button
+          className={`backend-status ${health === null ? 'checking' : connected ? 'online' : 'offline'}`}
+          onClick={() => setPopoverOpen((o) => !o)}
+          aria-expanded={popoverOpen}
+          aria-haspopup="dialog"
+          aria-label="Trạng thái máy chủ AI và provider nhận dạng"
+        >
+          <span className="dot" />
+          <span>{health === null ? 'Đang kiểm tra...' : connected ? 'AI sẵn sàng' : 'AI chưa kết nối'}</span>
+        </button>
+        {popoverOpen && (
+          <div className="backend-popover" role="dialog" aria-label="Thông tin AI">
+            <div className="backend-popover-title">Nhận dạng AI</div>
+            <div className="backend-popover-status">
+              {connected ? 'Máy chủ AI: sẵn sàng' : 'Máy chủ AI: chưa kết nối'}
+            </div>
+            <div className="backend-popover-label">Provider đang dùng:</div>
+            <div className="backend-popover-options" role="radiogroup" aria-label="Chọn provider nhận dạng">
+              {providerList.map((name) => (
+                <label key={name} className="backend-popover-option">
+                  <input
+                    type="radio"
+                    name="recognition-provider"
+                    value={name}
+                    checked={health?.provider === name}
+                    disabled={!connected || switching}
+                    onChange={() => changeProvider(name)}
+                  />
+                  <span>{PROVIDER_LABELS[name] ?? name}</span>
+                </label>
+              ))}
+            </div>
+            <div className="backend-popover-note">
+              Đổi trong lúc chạy; khởi động lại backend sẽ trở về provider trong .env
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

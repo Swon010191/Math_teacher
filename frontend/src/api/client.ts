@@ -28,13 +28,38 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return (await response.json()) as T;
 }
 
-export async function checkHealth(): Promise<boolean> {
+export interface HealthInfo {
+  connected: boolean;
+  provider: string;
+}
+
+export interface ProviderState {
+  provider: string;
+  available: string[];
+}
+
+export async function checkHealth(): Promise<HealthInfo> {
   try {
     const response = await fetch(`${BASE_URL}/health`);
-    return response.ok;
+    if (!response.ok) return { connected: false, provider: '' };
+    const body = (await response.json()) as { recognition_provider?: string };
+    return { connected: true, provider: body.recognition_provider ?? '' };
   } catch {
-    return false;
+    return { connected: false, provider: '' };
   }
+}
+
+export async function getRecognitionProvider(): Promise<ProviderState> {
+  return request<ProviderState>('/api/recognize/provider');
+}
+
+export async function setRecognitionProvider(
+  provider: string,
+): Promise<ProviderState> {
+  return request<ProviderState>('/api/recognize/provider', {
+    method: 'PUT',
+    body: JSON.stringify({ provider }),
+  });
 }
 
 export interface QuadraticFeatures {

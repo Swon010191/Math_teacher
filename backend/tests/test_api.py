@@ -17,7 +17,50 @@ class TestHealth:
     def test_health(self, client: TestClient) -> None:
         response = client.get("/health")
         assert response.status_code == 200
-        assert response.json()["status"] == "ok"
+        data = response.json()
+        assert data["status"] == "ok"
+        assert data["recognition_provider"] == "mock"
+
+
+class TestRecognizeProvider:
+    @pytest.fixture(autouse=True)
+    def reset_provider(self) -> None:
+        from app.services.recognition_settings import set_active_provider
+
+        yield
+        set_active_provider("mock")
+
+    def test_get_provider_mac_dinh_mock(self, client: TestClient) -> None:
+        response = client.get("/api/recognize/provider")
+        assert response.status_code == 200
+        data = response.json()
+        assert data["provider"] == "mock"
+        assert set(data["available"]) == {"mock", "ollama_vision", "pix2text"}
+
+    def test_doi_provider(self, client: TestClient) -> None:
+        response = client.put(
+            "/api/recognize/provider", json={"provider": "ollama_vision"}
+        )
+        assert response.status_code == 200
+        assert response.json()["provider"] == "ollama_vision"
+        check = client.get("/api/recognize/provider")
+        assert check.json()["provider"] == "ollama_vision"
+
+    def test_doi_provider_khong_hop_le(self, client: TestClient) -> None:
+        response = client.put(
+            "/api/recognize/provider", json={"provider": "spam"}
+        )
+        assert response.status_code == 400
+        assert "spam" in response.json()["detail"]
+
+    def test_recognize_dung_provider_da_doi(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("OLLAMA_URL", "http://127.0.0.1:1")
+        client.put("/api/recognize/provider", json={"provider": "ollama_vision"})
+        response = client.post("/api/recognize", json={})
+        assert response.status_code == 500
+        assert "ollama_vision" in response.json()["detail"]
 
 
 class TestMathAnalyze:

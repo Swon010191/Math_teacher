@@ -25,6 +25,8 @@ test('vẽ nét tay -> khoanh vùng -> nhận dạng -> xác nhận -> tạo act
   await page.goto('/');
   const board = page.locator('.board-container');
 
+  const toolGroup = page.getByRole('group', { name: 'Công cụ vẽ' });
+
   await page.getByRole('button', { name: 'Bút' }).click();
   const box = await board.boundingBox();
   if (!box) throw new Error('Không tìm thấy vùng bảng');
@@ -35,7 +37,7 @@ test('vẽ nét tay -> khoanh vùng -> nhận dạng -> xác nhận -> tạo act
   }
   await page.mouse.up();
 
-  await page.getByRole('button', { name: 'AI' }).click();
+  await toolGroup.getByRole('button', { name: 'AI' }).click();
   await page.mouse.move(box.x + 260, box.y + 210);
   await page.mouse.down();
   await page.mouse.move(box.x + 420, box.y + 300);
@@ -129,6 +131,7 @@ test('công cụ Chọn: khoanh vùng chọn nét vẽ và kéo di chuyển cùn
 test('công thức không xác định được: báo lỗi và vẫn thoát được', async ({ page }) => {
   await page.goto('/');
   const board = page.locator('.board-container');
+  const toolGroup = page.getByRole('group', { name: 'Công cụ vẽ' });
 
   await page.getByRole('button', { name: 'Bút' }).click();
   const box = await board.boundingBox();
@@ -138,7 +141,7 @@ test('công thức không xác định được: báo lỗi và vẫn thoát đ�
   await page.mouse.move(box.x + 420, box.y + 260);
   await page.mouse.up();
 
-  await page.getByRole('button', { name: 'AI' }).click();
+  await toolGroup.getByRole('button', { name: 'AI' }).click();
   await page.mouse.move(box.x + 260, box.y + 210);
   await page.mouse.down();
   await page.mouse.move(box.x + 420, box.y + 300);
@@ -185,6 +188,7 @@ test('nhập hàm bậc nhất bằng bàn phím tạo activity linear', async (
 test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyển theo', async ({ page }) => {
   await page.goto('/');
   const board = page.locator('.board-container');
+  const toolGroup = page.getByRole('group', { name: 'Công cụ vẽ' });
 
   await page.getByRole('button', { name: 'Bút' }).click();
   const box = await board.boundingBox();
@@ -200,7 +204,7 @@ test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyể
   await page.mouse.move(box.x + 600, box.y + 380);
   await page.mouse.up();
 
-  await page.getByRole('button', { name: 'AI' }).click();
+  await toolGroup.getByRole('button', { name: 'AI' }).click();
   await page.mouse.move(box.x + 280, box.y + 220);
   await page.mouse.down();
   await page.mouse.move(box.x + 440, box.y + 300);
@@ -213,4 +217,28 @@ test('công cụ Di chuyển: kéo để dời bảng, nội dung dịch chuyể
   await page.mouse.move(box.x + 660, box.y + 420);
   await page.mouse.up();
   await expect(page.locator('.toast')).toContainText('Đã xóa 1 đối tượng');
+});
+
+test('bấm vào "AI sẵn sàng": xem và đổi provider nhận dạng qua popover', async ({ page }) => {
+  await page.goto('/');
+  const statusBtn = page.getByRole('button', { name: /Trạng thái máy chủ AI/ });
+  await expect(statusBtn).toContainText('AI sẵn sàng');
+
+  await statusBtn.click();
+  await expect(page.getByText('Provider đang dùng:')).toBeVisible();
+  await expect(page.getByLabel('Mock (giả lập)')).toBeChecked();
+
+  await page.getByLabel('Ollama Vision (AI thật)').click();
+  await expect(page.locator('.toast')).toContainText(
+    'Đã chuyển sang provider: Ollama Vision',
+    { timeout: 15_000 },
+  );
+
+  await statusBtn.click();
+  await expect(page.getByLabel('Ollama Vision (AI thật)')).toBeChecked();
+
+  await page.getByLabel('Mock (giả lập)').click();
+  await expect(page.locator('.toast')).toContainText('Đã chuyển sang provider: Mock', {
+    timeout: 15_000,
+  });
 });
