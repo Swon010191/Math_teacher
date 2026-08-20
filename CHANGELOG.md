@@ -20,11 +20,12 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - Interactive Teaching Canvas (JSXGraph): đồ thị parabol, slider a/b/c, nút
   hiện/ẩn đỉnh-nghiệm-trục, điều hướng bước giảng dạy, kéo/resize trên bảng.
 - Kiểm thử frontend (Vitest + React Testing Library): 14 test.
+- Kiểm thử E2E (Playwright): 3 test cho luồng vẽ -> nhận dạng -> xác nhận ->
+  trực quan hóa, nhập công thức bằng bàn phím, lưu/mở bảng.
 - Tài liệu mã nguồn mở: README, CHANGELOG, CONTRIBUTING, THIRD_PARTY_NOTICES,
   hướng dẫn cài đặt, issue templates (bug tracker GitHub Issues).
 
 ### Sắp tới
-- Kiểm thử E2E (Playwright) cho luồng vẽ -> nhận dạng -> xác nhận -> trực quan hóa.
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.
 - Open Teaching Activity Platform - plugin, chia sẻ cộng đồng.
 - Các loại hàm khác: bậc nhất, phân thức, sin/cos, logarit, mũ.

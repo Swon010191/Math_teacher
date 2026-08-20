@@ -76,10 +76,19 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
   const captureRegion = useCallback((region: Marquee) => {
     const strokes = strokesInRegion(region);
     if (strokes.length === 0) return null;
+    const width = Math.max(1, Math.abs(region.x1 - region.x0));
+    const height = Math.max(1, Math.abs(region.y1 - region.y0));
+    const container = document.createElement('div');
+    container.style.position = 'absolute';
+    container.style.left = '-9999px';
+    container.style.top = '0';
+    container.style.width = `${width}px`;
+    container.style.height = `${height}px`;
+    document.body.appendChild(container);
     const offscreen = new Konva.Stage({
-      width: Math.max(1, Math.abs(region.x1 - region.x0)),
-      height: Math.max(1, Math.abs(region.y1 - region.y0)),
-      container: undefined,
+      width,
+      height,
+      container,
     });
     const layer = new Konva.Layer();
     strokes.forEach((s) => {
@@ -97,6 +106,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     offscreen.add(layer);
     const dataUrl = offscreen.toDataURL({ pixelRatio: 2 });
     offscreen.destroy();
+    container.remove();
     return dataUrl;
   }, [strokesInRegion]);
 

@@ -12,18 +12,14 @@ const PURPLE = '#7c3aed';
 
 /** Tập con API JSXGraph mà activity dùng (tránh phụ thuộc type phức tạp). */
 interface JxgElement {
-  setPosition: (type: number, coords: [number, number] | [[number, number], [number, number]]) => void;
+  setPosition: (type: number, coords: number[]) => void;
   setAttribute: (attrs: Record<string, unknown>) => void;
-}
-
-interface JxgCurve extends JxgElement {
-  setFunction: (f: (x: number) => number, min: number, max: number) => void;
 }
 
 export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
   const boardRef = useRef<HTMLDivElement | null>(null);
   const board = useRef<JXG.Board | null>(null);
-  const curve = useRef<JxgCurve | null>(null);
+  const curve = useRef<JXG.GeometryElement | null>(null);
   const vertexPoint = useRef<JxgElement | null>(null);
   const rootPoints = useRef<JxgElement[]>([]);
   const axisLine = useRef<JxgElement | null>(null);
@@ -57,7 +53,7 @@ export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
       'functiongraph',
       [(_x: number) => 0, -10, 10],
       { strokeColor: BLUE, strokeWidth: 3 },
-    ) as unknown as JxgCurve;
+    ) as unknown as JXG.GeometryElement;
     vertexPoint.current = jxgBoard.create(
       'point',
       [0, 0],
@@ -94,7 +90,15 @@ export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
 
   useEffect(() => {
     const { a, h, k, roots } = quadraticFeatures(params);
-    curve.current?.setFunction((x: number) => a * x * x + params.b * x + params.c, -10, 10);
+    const b = board.current;
+    if (b) {
+      if (curve.current) b.removeObject(curve.current);
+      curve.current = b.create(
+        'functiongraph',
+        [(x: number) => a * x * x + params.b * x + params.c, -10, 10],
+        { strokeColor: BLUE, strokeWidth: 3 },
+      ) as unknown as JXG.GeometryElement;
+    }
 
     vertexPoint.current?.setPosition(JXG.COORDS_BY_USER, [h, k]);
     vertexPoint.current?.setAttribute({ visible: revealed.has('vertex') });
@@ -121,7 +125,7 @@ export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
     axisLine.current?.setPosition(JXG.COORDS_BY_USER, [
       [h, -10],
       [h, 10],
-    ]);
+    ] as unknown as number[]);
     axisLine.current?.setAttribute({ visible: revealed.has('axis') });
   }, [params, revealed]);
 
