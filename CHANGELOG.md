@@ -8,6 +8,10 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Recognition thật (tùy chọn theo cấu hình)**: `OllamaVisionProvider`
+  (LLaVA/Qwen-VL qua Ollama) và `Pix2TextProvider` (Math OCR); chọn bằng
+  `RECOGNITION_PROVIDER=mock|ollama_vision|pix2text` trong `.env`.
+  Mặc định vẫn là Mock - demo không cần cài thêm gì.
 - **Activity hàm bậc nhất (linear function)**: API `/api/math/activity` tự chọn
   loại activity theo loại biểu thức (bậc hai/bậc nhất); frontend thêm
   LinearActivity - đồ thị đường thẳng (JSXGraph), slider hệ số a/b, nút hiện
@@ -50,6 +54,8 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
   (tổng 8 test E2E) + 4 test đơn vị mới cho RecognitionModal và MathInputBar.
 - Thêm activity hàm bậc nhất: 1 test backend, 3 test đơn vị LinearActivity,
   1 test E2E (tổng backend 28, frontend 21, E2E 9).
+- Thêm 10 test provider Recognition thật (Ollama Vision + Pix2Text với HTTP
+  mock) - tổng backend 37.
 
 ### Sắp tới
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.

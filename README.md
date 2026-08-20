@@ -91,6 +91,15 @@ Thanh công cụ gồm 3 nhóm:
 > đã kết nối chưa. Khi đèn đỏ, hãy khởi động backend:
 > `uvicorn app.main:app --port 8000` (thư mục `backend/`).
 
+**Recognition thật (tùy chọn):** mặc định dùng Mock (demo không cần cài gì).
+Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến môi trường trong
+`backend/.env` (xem `backend/.env.example`):
+
+| Provider | Cài đặt | Cấu hình |
+|---|---|---|
+| `ollama_vision` | `ollama pull llava` (hoặc Qwen-VL) | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
+| `pix2text` | `pip install pix2text` + `p2t serve` | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
+
 > **Chọn / Xóa theo khoanh vùng:** không cần bấm trúng đối tượng — chỉ cần kéo
 > một khung bao quanh vùng muốn chọn hoặc muốn xóa. Kết quả hiển thị ngay.
 
