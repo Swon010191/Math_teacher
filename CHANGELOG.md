@@ -8,6 +8,15 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Chuyển LaTeX OCR thành biểu thức đọc được**: `to_expression` giờ xử lý
+  đầy đủ cú pháp LaTeX mà Pix2Text/Ollama trả về — `\frac{n}{d}` (kể cả phân
+  số lồng), `x^{2}`, `\sqrt{x}`, `\sqrt[3]{x}`, `2\cdot 3^x`, `\left(...\right)`,
+  `\log_{10}(x)` -> `log(x,10)`, `\lg(x)`, `\pi`. Trước đây ô "Biểu thức chuẩn
+  hóa" hiện nguyên LaTeX `\frac{2 x+3}{x-1}` (không đọc được) và Xác nhận báo
+  lỗi; nay hiện `(2 x+3)/(x-1)` và phân tích thành activity phân thức bình
+  thường. Dán thẳng LaTeX vào ô nhập công thức cũng hoạt động.
+- **Modal xác nhận nhận dạng**: kết quả LaTeX của OCR ("Nhận dạng (độ tin
+  cậy X%)") được render bằng KaTeX thay vì hiển thị văn bản thô.
 - **Nhận đa dạng cách viết biểu thức**: tầng tiền xử lý `_preprocess_input`
   nhận thêm ngoặc nhọn LaTeX/OCR (`3^{x}`, `2*3**{x}-1`), số mũ Unicode
   (`x²-4x+3`, `x⁻¹`), ký hiệu phép toán (`·` `×` `÷` -> `*` `/`), và các cách

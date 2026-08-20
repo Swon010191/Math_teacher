@@ -17,6 +17,7 @@ from sympy.parsing.sympy_parser import (
     standard_transformations,
 )
 
+from app.providers.normalize import to_expression
 from app.schemas.math import (
     ExponentialFeatures,
     LinearFeatures,
@@ -84,17 +85,13 @@ def _preprocess_input(raw: str) -> str:
     """Chuẩn hóa chuỗi thô thành dạng SymPy chấp nhận được (chưa parse).
 
     - Bỏ phần vế trái (y = ..., f(x) = ...) nếu có.
+    - LaTeX thô (\\frac, \\sqrt, \\cdot...) -> cú pháp SymPy.
     - Ngoặc nhọn {}, số mũ Unicode, ký hiệu · × ÷, lg()/log10()/log2().
     """
     text = raw.strip()
     if not text:
         raise MathEngineError("Biểu thức trống.")
-    for prefix in ("y=", "y =", "f(x)=", "f(x) =", "f(x):", "="):
-        if text.startswith(prefix):
-            text = text[len(prefix):].strip()
-            break
-    if not text:
-        raise MathEngineError("Không tìm thấy vế phải của biểu thức.")
+    text = to_expression(text)
     text = _expand_superscripts(text)
     text = _normalize_glyphs(text)
     text = _fix_log_forms(text)

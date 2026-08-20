@@ -38,6 +38,14 @@ export function RecognitionModal({
     }
   })();
 
+  const latexHtml = (() => {
+    try {
+      return katex.renderToString(latex, { throwOnError: true });
+    } catch {
+      return null;
+    }
+  })();
+
   const handleConfirm = async () => {
     setBusy(true);
     try {
@@ -55,7 +63,14 @@ export function RecognitionModal({
         <h3>Xác nhận công thức</h3>
         <p className="modal-note">
           Nhận dạng (độ tin cậy {(confidence * 100).toFixed(0)}%):{' '}
-          <span className="modal-latex">{latex}</span>
+          {latexHtml ? (
+            <span
+              className="modal-latex"
+              dangerouslySetInnerHTML={{ __html: latexHtml }}
+            />
+          ) : (
+            <span className="modal-latex">{latex}</span>
+          )}
         </p>
         <div
           className="math-preview"

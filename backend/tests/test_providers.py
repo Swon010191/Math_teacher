@@ -11,6 +11,7 @@ from app.providers.ollama_vision import OllamaVisionProvider
 from app.providers.pix2text import Pix2TextProvider
 from app.providers.rule_based_copilot import RuleBasedCopilotProvider
 from app.schemas.copilot import CopilotRequest, CopilotMathInput
+from app.services.math_service import MathEngineError, analyze_expression
 from app.services.recognition_diagnostics import check_all, check_provider_availability
 
 
@@ -41,10 +42,44 @@ class TestNormalize:
             ("f(x)=2*x+1", "2*x+1"),
             ("x^2 - 4x + 3", "x**2 - 4x + 3"),
             ("  x + 1  ", "x + 1"),
+            (r"\frac{2 x+3}{x-1}", "(2 x+3)/(x-1)"),
+            (r"y = \frac{2 x+3}{x-1}", "(2 x+3)/(x-1)"),
+            (r"\frac{\frac{1}{2}}{x}", "((1)/(2))/(x)"),
+            (r"x^{2}", "x**(2)"),
+            (r"\sqrt{x}", "sqrt(x)"),
+            (r"\sqrt[3]{x}", "x**(1/(3))"),
+            (r"2\cdot 3^x", "2* 3**x"),
+            (r"\left(\frac{1}{2}\right)", "((1)/(2))"),
+            (r"\sin(x)", "sin(x)"),
+            (r"\log_{10}(x)", "log(x,10)"),
+            (r"\lg(x)", "lg(x)"),
+            (r"\pi", "pi"),
+            (r"\frac{x^2 - 4x + 3}{x - 1}", "(x**2 - 4x + 3)/(x - 1)"),
+            (r"2^{\frac{x}{2}}", "2**((x)/(2))"),
         ],
     )
     def test_to_expression(self, raw: str, expected: str) -> None:
         assert to_expression(raw) == expected
+
+    @pytest.mark.parametrize(
+        ("raw", "kind", "extra"),
+        [
+            (r"\frac{2 x+3}{x-1}", "rational", None),
+            (r"\log_{10}(x)", "logarithmic", 10.0),
+            (r"\lg(x)", "logarithmic", 10.0),
+            (r"\sin(x)", "trigonometric", None),
+            (r"x^{2}", "quadratic", None),
+        ],
+    )
+    def test_latex_phan_tich_duoc(self, raw: str, kind: str, extra: object) -> None:
+        result = analyze_expression(to_expression(raw))
+        assert result.kind == kind
+        if kind == "logarithmic":
+            assert result.logarithmic.base == extra
+
+    def test_latex_sqrt_ngoai_pham_vi_bao_loi(self) -> None:
+        with pytest.raises(MathEngineError):
+            analyze_expression(to_expression(r"\sqrt{x}"))
 
 
 class TestOllamaVisionProvider:
