@@ -32,12 +32,80 @@ class LinearFeatures(BaseModel):
     sample_points: list[list[float]]
 
 
+class RationalFeatures(BaseModel):
+    """Đặc trưng của hàm phân thức bậc nhất/bậc nhất y = (ax + b)/(cx + d)."""
+
+    a: float
+    b: float
+    c: float
+    d: float
+    poles: list[float] = Field(..., description="Giá trị x hàm số không xác định")
+    vertical_asymptotes: list[str] = Field(..., description="Tiệm cận đứng, ví dụ ['x = 1']")
+    horizontal_asymptote: str | None = Field(..., description="Tiệm cận ngang, ví dụ 'y = 2'")
+    root: float | None = Field(..., description="Nghiệm của tử số (cắt trục hoành)")
+    y_intercept: float | None
+    domain: str = Field(..., description="Tập xác định, ví dụ 'x ≠ 1' hoặc 'R'")
+    sample_points: list[list[float]]
+
+
+class TrigFeatures(BaseModel):
+    """Đặc trưng của hàm lượng giác y = a*sin(bx + c) + d hoặc a*cos(bx + c) + d."""
+
+    func: str = Field(..., description="'sin' hoặc 'cos'")
+    a: float
+    b: float
+    c: float
+    d: float
+    amplitude: float
+    period: float
+    phase_shift: float
+    midline: float = Field(..., description="Đường trung bình y = d")
+    max_value: float
+    min_value: float
+    roots: list[float] = Field(..., description="Nghiệm trong cửa sổ hai chu kỳ")
+    sample_points: list[list[float]]
+
+
+class ExponentialFeatures(BaseModel):
+    """Đặc trưng của hàm mũ y = a*b^x + c."""
+
+    a: float
+    b: float = Field(..., description="Cơ số")
+    c: float
+    base: float = Field(..., description="Cơ số dùng hiển thị (b hoặc e)")
+    direction: str = Field(..., description="Đồng biến/nghịch biến: 'up' hoặc 'down'")
+    horizontal_asymptote: str = Field(..., description="Tiệm cận ngang, ví dụ 'y = 0'")
+    y_intercept: float
+    x_intercept: float | None
+    sample_points: list[list[float]]
+
+
+class LogarithmicFeatures(BaseModel):
+    """Đặc trưng của hàm logarit y = a*log(x, base) + c."""
+
+    a: float
+    b: float = Field(..., description="Cơ số")
+    c: float
+    base: float
+    domain: str = Field(..., description="Tập xác định, ví dụ 'x > 0'")
+    vertical_asymptote: str = Field(..., description="Tiệm cận đứng, ví dụ 'x = 0'")
+    x_intercept: float
+    sample_points: list[list[float]]
+
+
 class MathAnalyzeResponse(BaseModel):
     """Kết quả phân tích biểu thức."""
 
     expression: str = Field(..., description="Biểu thức gốc người dùng nhập")
     normalized_expression: str = Field(..., description="Biểu thức đã chuẩn hóa (SymPy)")
-    kind: str = Field(..., description="Loại: quadratic | linear | unknown")
+    kind: str = Field(
+        ...,
+        description="Loại: quadratic | linear | rational | trigonometric | exponential | logarithmic | unknown",
+    )
     latex: str = Field(..., description="Biểu diễn LaTeX")
     quadratic: QuadraticFeatures | None = None
     linear: LinearFeatures | None = None
+    rational: RationalFeatures | None = None
+    trigonometric: TrigFeatures | None = None
+    exponential: ExponentialFeatures | None = None
+    logarithmic: LogarithmicFeatures | None = None

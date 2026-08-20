@@ -19,13 +19,21 @@ def build_activity(
     confidence: float,
     confirmed: bool = True,
 ) -> ActivityModel:
-    """Tạo Activity theo loại biểu thức (bậc hai hoặc bậc nhất - phạm vi MVP)."""
+    """Tạo Activity theo loại biểu thức (bậc hai, bậc nhất, phân thức, lượng giác, mũ, logarit)."""
     analysis = analyze_expression(expression)
     if analysis.kind == "quadratic":
         return build_quadratic_activity(latex, expression, confidence, confirmed)
     if analysis.kind == "linear":
         return build_linear_activity(latex, expression, confidence, confirmed)
-    raise ValueError("MVP hỗ trợ hàm bậc hai và hàm bậc nhất.")
+    if analysis.kind == "rational":
+        return build_rational_activity(latex, expression, confidence, confirmed)
+    if analysis.kind == "trigonometric":
+        return build_trig_activity(latex, expression, confidence, confirmed)
+    if analysis.kind == "exponential":
+        return build_exponential_activity(latex, expression, confidence, confirmed)
+    if analysis.kind == "logarithmic":
+        return build_logarithmic_activity(latex, expression, confidence, confirmed)
+    raise ValueError("MVP hỗ trợ hàm bậc hai, bậc nhất, phân thức, lượng giác sin/cos, mũ và logarit.")
 
 
 def build_linear_activity(
@@ -96,5 +104,163 @@ def build_quadratic_activity(
             ActivityStep(visible=["graph"]),
             ActivityStep(visible=["graph", "axis"]),
             ActivityStep(visible=["graph", "axis", "vertex", "roots"]),
+        ],
+    )
+
+
+def build_rational_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+) -> ActivityModel:
+    """Tạo Activity hàm phân thức bậc nhất/bậc nhất (schemaVersion 1.0)."""
+    analysis = analyze_expression(expression)
+    if analysis.kind != "rational" or analysis.rational is None:
+        raise ValueError("Activity hàm phân thức yêu cầu biểu thức (ax+b)/(cx+d) hợp lệ.")
+    r = analysis.rational
+    asymptotes = list(r.vertical_asymptotes)
+    if r.horizontal_asymptote:
+        asymptotes.append(r.horizontal_asymptote)
+    return ActivityModel(
+        schemaVersion="1.0",
+        type="rational_function",
+        source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
+        math=ActivityMath(
+            expression=analysis.normalized_expression,
+            a=r.a,
+            b=r.b,
+            c=r.c,
+            d=r.d,
+            root=r.root,
+            y_intercept=r.y_intercept,
+            domain=r.domain,
+            asymptotes=asymptotes,
+        ),
+        widgets=[
+            ActivityWidget(type="graph"),
+            ActivityWidget(type="parameter_slider", parameters=["a", "b", "c", "d"]),
+        ],
+        steps=[
+            ActivityStep(visible=["graph"]),
+            ActivityStep(visible=["graph", "vertical_asymptotes"]),
+            ActivityStep(visible=["graph", "vertical_asymptotes", "horizontal_asymptote", "root"]),
+        ],
+    )
+
+
+def build_trig_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+) -> ActivityModel:
+    """Tạo Activity hàm lượng giác y = a*sin(bx+c)+d hoặc a*cos(bx+c)+d."""
+    analysis = analyze_expression(expression)
+    if analysis.kind != "trigonometric" or analysis.trigonometric is None:
+        raise ValueError("Activity lượng giác yêu cầu biểu thức a*sin(bx+c)+d hoặc a*cos(bx+c)+d hợp lệ.")
+    t = analysis.trigonometric
+    return ActivityModel(
+        schemaVersion="1.0",
+        type="trig_function",
+        source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
+        math=ActivityMath(
+            expression=analysis.normalized_expression,
+            func=t.func,
+            a=t.a,
+            b=t.b,
+            c=t.c,
+            d=t.d,
+            amplitude=t.amplitude,
+            period=t.period,
+            phase_shift=t.phase_shift,
+            midline=t.midline,
+            max_value=t.max_value,
+            min_value=t.min_value,
+            roots=t.roots,
+        ),
+        widgets=[
+            ActivityWidget(type="graph"),
+            ActivityWidget(type="parameter_slider", parameters=["a", "b", "c", "d"]),
+        ],
+        steps=[
+            ActivityStep(visible=["graph"]),
+            ActivityStep(visible=["graph", "midline"]),
+            ActivityStep(visible=["graph", "midline", "max_min", "roots"]),
+        ],
+    )
+
+
+def build_exponential_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+) -> ActivityModel:
+    """Tạo Activity hàm mũ y = a*b^x + c."""
+    analysis = analyze_expression(expression)
+    if analysis.kind != "exponential" or analysis.exponential is None:
+        raise ValueError("Activity hàm mũ yêu cầu biểu thức a*b^x + c hợp lệ.")
+    e = analysis.exponential
+    return ActivityModel(
+        schemaVersion="1.0",
+        type="exponential_function",
+        source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
+        math=ActivityMath(
+            expression=analysis.normalized_expression,
+            a=e.a,
+            b=e.b,
+            c=e.c,
+            base=e.base,
+            direction=e.direction,
+            y_intercept=e.y_intercept,
+            root=e.x_intercept,
+            asymptotes=[e.horizontal_asymptote],
+        ),
+        widgets=[
+            ActivityWidget(type="graph"),
+            ActivityWidget(type="parameter_slider", parameters=["a", "b", "c"]),
+        ],
+        steps=[
+            ActivityStep(visible=["graph"]),
+            ActivityStep(visible=["graph", "asymptote"]),
+            ActivityStep(visible=["graph", "asymptote", "y_intercept", "root"]),
+        ],
+    )
+
+
+def build_logarithmic_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+) -> ActivityModel:
+    """Tạo Activity hàm logarit y = a*log(x, base) + c."""
+    analysis = analyze_expression(expression)
+    if analysis.kind != "logarithmic" or analysis.logarithmic is None:
+        raise ValueError("Activity hàm logarit yêu cầu biểu thức a*log(x, base) + c hợp lệ.")
+    lg = analysis.logarithmic
+    return ActivityModel(
+        schemaVersion="1.0",
+        type="logarithmic_function",
+        source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
+        math=ActivityMath(
+            expression=analysis.normalized_expression,
+            a=lg.a,
+            b=lg.b,
+            c=lg.c,
+            base=lg.base,
+            domain=lg.domain,
+            root=lg.x_intercept,
+            asymptotes=[lg.vertical_asymptote],
+        ),
+        widgets=[
+            ActivityWidget(type="graph"),
+            ActivityWidget(type="parameter_slider", parameters=["a", "b", "c"]),
+        ],
+        steps=[
+            ActivityStep(visible=["graph"]),
+            ActivityStep(visible=["graph", "asymptote"]),
+            ActivityStep(visible=["graph", "asymptote", "root"]),
         ],
     )

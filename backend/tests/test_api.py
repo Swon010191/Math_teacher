@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import math
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -77,6 +79,31 @@ class TestCopilot:
     def test_suggest_thieu_truong(self, client: TestClient) -> None:
         response = client.post("/api/copilot/suggest", json={})
         assert response.status_code == 422
+
+    def test_suggest_rational(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/copilot/suggest",
+            json={
+                "expression": "(2*x + 1)/(x - 1)",
+                "activity_type": "rational_function",
+                "math": {
+                    "expression": "(2*x + 1)/(x - 1)",
+                    "a": 2.0,
+                    "b": 1.0,
+                    "c": 1.0,
+                    "d": -1.0,
+                    "root": -0.5,
+                    "y_intercept": -1.0,
+                    "domain": "x ≠ 1",
+                    "asymptotes": ["x = 1", "y = 2"],
+                },
+            },
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert "tiệm cận" in data["summary"]
+        assert "tiệm cận đứng" in data["key_points"][1]
+        assert len(data["teaching_steps"]) >= 2
 
 
 class TestCopilotProvider:
@@ -226,7 +253,7 @@ class TestMathActivity:
 
     def test_activity_khong_hop_le(self, client: TestClient) -> None:
         response = client.post(
-            "/api/math/activity", json={"expression": "sin(x)"}
+            "/api/math/activity", json={"expression": "tan(x)"}
         )
         assert response.status_code == 400
 
@@ -247,6 +274,63 @@ class TestMathActivity:
             "parameter_slider",
         ]
         assert len(data["steps"]) == 2
+
+    def test_tao_activity_rational(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/math/activity", json={"expression": "(2*x+1)/(x-1)"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["schemaVersion"] == "1.0"
+        assert data["type"] == "rational_function"
+        assert data["math"]["a"] == 2.0
+        assert data["math"]["b"] == 1.0
+        assert data["math"]["c"] == 1.0
+        assert data["math"]["d"] == -1.0
+        assert data["math"]["asymptotes"] == ["x = 1", "y = 2"]
+        assert data["math"]["domain"] == "x ≠ 1"
+        assert data["math"]["root"] == -0.5
+        assert data["widgets"][1]["parameters"] == ["a", "b", "c", "d"]
+        assert len(data["steps"]) == 3
+
+    def test_tao_activity_trig(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/math/activity", json={"expression": "2*sin(x) + 1"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["schemaVersion"] == "1.0"
+        assert data["type"] == "trig_function"
+        assert data["math"]["func"] == "sin"
+        assert data["math"]["amplitude"] == 2.0
+        assert data["math"]["period"] == pytest.approx(2 * math.pi)
+        assert data["math"]["max_value"] == 3.0
+        assert data["math"]["min_value"] == -1.0
+        assert data["widgets"][1]["parameters"] == ["a", "b", "c", "d"]
+
+    def test_tao_activity_exponential(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/math/activity", json={"expression": "2**x"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["schemaVersion"] == "1.0"
+        assert data["type"] == "exponential_function"
+        assert data["math"]["base"] == 2.0
+        assert data["math"]["asymptotes"] == ["y = 0"]
+        assert data["math"]["y_intercept"] == 1.0
+
+    def test_tao_activity_logarithmic(self, client: TestClient) -> None:
+        response = client.post(
+            "/api/math/activity", json={"expression": "log(x)"}
+        )
+        assert response.status_code == 200
+        data = response.json()
+        assert data["schemaVersion"] == "1.0"
+        assert data["type"] == "logarithmic_function"
+        assert data["math"]["base"] == pytest.approx(math.e)
+        assert data["math"]["asymptotes"] == ["x = 0"]
+        assert data["math"]["root"] == pytest.approx(1.0)
 
 
 class TestRecognize:

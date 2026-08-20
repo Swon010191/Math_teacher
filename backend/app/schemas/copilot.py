@@ -16,6 +16,9 @@ class CopilotMathInput(BaseModel):
     a: float | None = None
     b: float | None = None
     c: float | None = None
+    d: float | None = None
+    func: str | None = None
+    base: float | None = None
     root: float | None = None
     vertex: list[float] | None = None
     roots: list[float] | None = None
@@ -23,6 +26,14 @@ class CopilotMathInput(BaseModel):
     y_intercept: float | None = None
     discriminant: float | None = None
     direction: str | None = None
+    amplitude: float | None = None
+    period: float | None = None
+    phase_shift: float | None = None
+    midline: float | None = None
+    max_value: float | None = None
+    min_value: float | None = None
+    asymptotes: list[str] | None = None
+    domain: str | None = None
 
 
 class CopilotRequest(BaseModel):
