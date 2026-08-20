@@ -25,6 +25,13 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - Tài liệu mã nguồn mở: README, CHANGELOG, CONTRIBUTING, THIRD_PARTY_NOTICES,
   hướng dẫn cài đặt, issue templates (bug tracker GitHub Issues).
 
+### Đã sửa (Stage 1)
+- Công cụ Chọn và Xóa chuyển sang **khoanh vùng (marquee)**: kéo khung bao quanh
+  để chọn/xóa toàn bộ đối tượng trong vùng, không cần bấm trúng từng nét vẽ.
+- Chọn nhiều đối tượng cùng lúc và kéo di chuyển cả nhóm; activity cũng được
+  khoanh vùng chọn và hiển thị viền xanh khi được chọn.
+- Thêm 2 test E2E cho khoanh vùng Chọn và Xóa (tổng 5 test E2E).
+
 ### Sắp tới
 - Teacher Copilot (Generative AI) - giải thích, sinh câu hỏi, đề xuất teaching sequence.
 - Open Teaching Activity Platform - plugin, chia sẻ cộng đồng.

@@ -1,21 +1,15 @@
 import Konva from 'konva';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { Layer, Line, Rect, Stage, Text as KonvaText } from 'react-konva';
 
 import { makeId, useAppStore } from '../../stores/appStore';
-import type { StrokeObject, Viewport } from './types';
+import { normalizeRegion, objectBounds, regionIntersects } from './types';
+import type { Region, StrokeObject, Viewport } from './types';
 
 interface BoardStageProps {
   containerRef: React.RefObject<HTMLDivElement>;
   onRecognizeRegion: (imageBase64: string, hint: string, x: number, y: number) => void;
   onAddText: (x: number, y: number) => void;
-}
-
-interface Marquee {
-  x0: number;
-  y0: number;
-  x1: number;
-  y1: number;
 }
 
 const MIN_SCALE = 0.3;
@@ -32,19 +26,21 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
   const objects = useAppStore((s) => s.objects);
   const tool = useAppStore((s) => s.tool);
   const viewport = useAppStore((s) => s.viewport);
-  const selectedId = useAppStore((s) => s.selectedId);
+  const selectedIds = useAppStore((s) => s.selectedIds);
   const setViewport = useAppStore((s) => s.setViewport);
-  const select = useAppStore((s) => s.select);
+  const setSelected = useAppStore((s) => s.setSelected);
   const addObject = useAppStore((s) => s.addObject);
   const updateObject = useAppStore((s) => s.updateObject);
   const removeObject = useAppStore((s) => s.removeObject);
+  const showToast = useAppStore((s) => s.showToast);
 
   const stageRef = useRef<Konva.Stage | null>(null);
   const [drawing, setDrawing] = useState<number[] | null>(null);
-  const [marquee, setMarquee] = useState<Marquee | null>(null);
+  const [marquee, setMarquee] = useState<Region | null>(null);
   const [panning, setPanning] = useState(false);
-  const [dragOffset, setDragOffset] = useState<{ id: string; dx: number; dy: number } | null>(null);
   const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const clickTargetId = useRef<string | null>(null);
+  const selDrag = useRef<{ startX: number; startY: number; originals: { id: string; x: number; y: number }[] } | null>(null);
 
   const getPointerBoard = useCallback(() => {
     const stage = stageRef.current;
@@ -54,61 +50,57 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     return screenToBoard(pos.x, pos.y, viewport);
   }, [viewport]);
 
-  const strokesInRegion = useCallback(
-    (region: Marquee) => {
-      const x0 = Math.min(region.x0, region.x1);
-      const y0 = Math.min(region.y0, region.y1);
-      const x1 = Math.max(region.x0, region.x1);
-      const y1 = Math.max(region.y0, region.y1);
-      return objects.filter((o) => {
-        if (o.type !== 'stroke') return false;
-        for (let i = 0; i < o.points.length; i += 2) {
-          const px = o.x + o.points[i];
-          const py = o.y + o.points[i + 1];
-          if (px >= x0 && px <= x1 && py >= y0 && py <= y1) return true;
-        }
-        return false;
-      }) as StrokeObject[];
+  const objectsInRegion = useCallback(
+    (region: Region) => {
+      const normalized = normalizeRegion(region);
+      return objects
+        .filter((o) => regionIntersects(normalized, objectBounds(o)))
+        .map((o) => o.id);
     },
     [objects],
   );
 
-  const captureRegion = useCallback((region: Marquee) => {
-    const strokes = strokesInRegion(region);
-    if (strokes.length === 0) return null;
-    const width = Math.max(1, Math.abs(region.x1 - region.x0));
-    const height = Math.max(1, Math.abs(region.y1 - region.y0));
-    const container = document.createElement('div');
-    container.style.position = 'absolute';
-    container.style.left = '-9999px';
-    container.style.top = '0';
-    container.style.width = `${width}px`;
-    container.style.height = `${height}px`;
-    document.body.appendChild(container);
-    const offscreen = new Konva.Stage({
-      width,
-      height,
-      container,
-    });
-    const layer = new Konva.Layer();
-    strokes.forEach((s) => {
-      const line = new Konva.Line({
-        points: s.points,
-        stroke: s.color,
-        strokeWidth: s.strokeWidth,
-        lineCap: 'round',
-        lineJoin: 'round',
-        x: s.x - Math.min(region.x0, region.x1),
-        y: s.y - Math.min(region.y0, region.y1),
+  const captureRegion = useCallback(
+    (region: Region) => {
+      const ids = objectsInRegion(region);
+      const strokes = objects.filter((o): o is StrokeObject => o.type === 'stroke' && ids.includes(o.id));
+      if (strokes.length === 0) return null;
+      const normalized = normalizeRegion(region);
+      const width = Math.max(1, normalized.x1 - normalized.x0);
+      const height = Math.max(1, normalized.y1 - normalized.y0);
+      const container = document.createElement('div');
+      container.style.position = 'absolute';
+      container.style.left = '-9999px';
+      container.style.top = '0';
+      container.style.width = `${width}px`;
+      container.style.height = `${height}px`;
+      document.body.appendChild(container);
+      const offscreen = new Konva.Stage({
+        width,
+        height,
+        container,
       });
-      layer.add(line);
-    });
-    offscreen.add(layer);
-    const dataUrl = offscreen.toDataURL({ pixelRatio: 2 });
-    offscreen.destroy();
-    container.remove();
-    return dataUrl;
-  }, [strokesInRegion]);
+      const layer = new Konva.Layer();
+      strokes.forEach((s) => {
+        const line = new Konva.Line({
+          points: s.points,
+          stroke: s.color,
+          strokeWidth: s.strokeWidth,
+          lineCap: 'round',
+          lineJoin: 'round',
+          x: s.x - normalized.x0,
+          y: s.y - normalized.y0,
+        });
+        layer.add(line);
+      });
+      offscreen.add(layer);
+      const dataUrl = offscreen.toDataURL({ pixelRatio: 2 });
+      offscreen.destroy();
+      container.remove();
+      return dataUrl;
+    },
+    [objects, objectsInRegion],
+  );
 
   const handleWheel = useCallback(
     (e: Konva.KonvaEventObject<WheelEvent>) => {
@@ -140,33 +132,10 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       }
       if (e.evt.button !== 0) return;
       const board = getPointerBoard();
+      clickTargetId.current = e.target.id() || null;
 
       if (tool === 'pen') {
         setDrawing([board.x, board.y]);
-        return;
-      }
-
-      if (tool === 'select') {
-        const target = e.target;
-        if (target === e.target.getStage() || target.name() === 'bg') {
-          select(null);
-          dragStart.current = { x: e.evt.clientX, y: e.evt.clientY };
-          return;
-        }
-        const id = target.id();
-        if (id) {
-          select(id);
-          const obj = objects.find((o) => o.id === id);
-          if (obj) {
-            setDragOffset({ id, dx: board.x - obj.x, dy: board.y - obj.y });
-          }
-        }
-        return;
-      }
-
-      if (tool === 'erase') {
-        const id = e.target.id();
-        if (id) removeObject(id);
         return;
       }
 
@@ -175,11 +144,32 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
         return;
       }
 
-      if (tool === 'ai') {
+      if (tool === 'select') {
+        if (clickTargetId.current) {
+          const ids = selectedIds.includes(clickTargetId.current)
+            ? selectedIds
+            : [clickTargetId.current];
+          setSelected(ids);
+          selDrag.current = {
+            startX: board.x,
+            startY: board.y,
+            originals: ids.map((oid) => {
+              const o = objects.find((ob) => ob.id === oid);
+              return { id: oid, x: o?.x ?? 0, y: o?.y ?? 0 };
+            }),
+          };
+          return;
+        }
+        setSelected([]);
+        setMarquee({ x0: board.x, y0: board.y, x1: board.x, y1: board.y });
+        return;
+      }
+
+      if (tool === 'ai' || tool === 'erase') {
         setMarquee({ x0: board.x, y0: board.y, x1: board.x, y1: board.y });
       }
     },
-    [tool, objects, getPointerBoard, select, removeObject, onAddText],
+    [tool, objects, selectedIds, getPointerBoard, setSelected, onAddText],
   );
 
   const onMouseMove = useCallback(
@@ -196,24 +186,25 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
         setDrawing([...drawing, board.x, board.y]);
         return;
       }
-      if (tool === 'ai' && marquee) {
+      if (marquee && (tool === 'ai' || tool === 'erase' || tool === 'select')) {
         setMarquee({ ...marquee, x1: board.x, y1: board.y });
         return;
       }
-      if (tool === 'select' && dragOffset) {
-        updateObject(dragOffset.id, {
-          x: board.x - dragOffset.dx,
-          y: board.y - dragOffset.dy,
+      if (tool === 'select' && selDrag.current) {
+        const dx = board.x - selDrag.current.startX;
+        const dy = board.y - selDrag.current.startY;
+        selDrag.current.originals.forEach((orig) => {
+          updateObject(orig.id, { x: orig.x + dx, y: orig.y + dy });
         });
       }
     },
-    [panning, tool, drawing, marquee, dragOffset, viewport, setViewport, getPointerBoard, updateObject],
+    [panning, tool, drawing, marquee, viewport, setViewport, getPointerBoard, updateObject],
   );
 
   const onMouseUp = useCallback(() => {
     setPanning(false);
     dragStart.current = null;
-    setDragOffset(null);
+    selDrag.current = null;
     if (tool === 'pen' && drawing) {
       if (drawing.length >= 4) {
         addObject({
@@ -228,22 +219,33 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       }
       setDrawing(null);
     }
-    if (tool === 'ai' && marquee) {
+    if (marquee) {
       const width = Math.abs(marquee.x1 - marquee.x0);
       const height = Math.abs(marquee.y1 - marquee.y0);
-      if (width > 10 && height > 10) {
-        const image = captureRegion(marquee);
-        if (image) {
-          onRecognizeRegion(image, '', Math.min(marquee.x0, marquee.x1), Math.min(marquee.y0, marquee.y1));
+      if (width > 5 && height > 5) {
+        if (tool === 'ai') {
+          const image = captureRegion(marquee);
+          if (image) {
+            onRecognizeRegion(image, '', Math.min(marquee.x0, marquee.x1), Math.min(marquee.y0, marquee.y1));
+          }
+        } else if (tool === 'erase') {
+          const ids = objectsInRegion(marquee);
+          ids.forEach((id) => removeObject(id));
+          if (ids.length > 0) {
+            showToast(`Đã xóa ${ids.length} đối tượng`);
+          }
+        } else if (tool === 'select') {
+          setSelected(objectsInRegion(marquee));
         }
+      } else if (tool === 'erase' && clickTargetId.current) {
+        removeObject(clickTargetId.current);
       }
       setMarquee(null);
     }
-  }, [tool, drawing, marquee, addObject, captureRegion, onRecognizeRegion]);
+  }, [tool, drawing, marquee, addObject, captureRegion, objectsInRegion, removeObject, setSelected, onRecognizeRegion, showToast]);
 
-  useEffect(() => {
-    if (!marquee || tool !== 'ai') setMarquee(null);
-  }, [tool]);
+  const marqueeColor = tool === 'select' ? '#3b82f6' : '#ef4444';
+  const marqueeFill = tool === 'select' ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
 
   return (
     <Stage
@@ -287,7 +289,6 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
                 lineJoin="round"
                 x={obj.x}
                 y={obj.y}
-                onClick={() => select(obj.id)}
               />
             );
           }
@@ -301,33 +302,23 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
                 text={obj.text}
                 fontSize={obj.fontSize}
                 fill={obj.color}
-                onClick={() => select(obj.id)}
               />
             );
           }
           return null;
         })}
-        {selectedId &&
+        {selectedIds.length > 0 &&
           objects
-            .filter((o): o is StrokeObject => o.id === selectedId && o.type === 'stroke')
+            .filter((o) => selectedIds.includes(o.id) && o.type !== 'activity')
             .map((o) => {
-              let minX = Infinity;
-              let minY = Infinity;
-              let maxX = -Infinity;
-              let maxY = -Infinity;
-              for (let i = 0; i < o.points.length; i += 2) {
-                minX = Math.min(minX, o.x + o.points[i]);
-                minY = Math.min(minY, o.y + o.points[i + 1]);
-                maxX = Math.max(maxX, o.x + o.points[i]);
-                maxY = Math.max(maxY, o.y + o.points[i + 1]);
-              }
+              const b = objectBounds(o);
               return (
                 <Rect
                   key={`sel-${o.id}`}
-                  x={minX - 6}
-                  y={minY - 6}
-                  width={maxX - minX + 12}
-                  height={maxY - minY + 12}
+                  x={b.x0 - 6}
+                  y={b.y0 - 6}
+                  width={b.x1 - b.x0 + 12}
+                  height={b.y1 - b.y0 + 12}
                   stroke="#3b82f6"
                   strokeWidth={2}
                   dash={[6, 4]}
@@ -351,10 +342,10 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
             y={Math.min(marquee.y0, marquee.y1)}
             width={Math.abs(marquee.x1 - marquee.x0)}
             height={Math.abs(marquee.y1 - marquee.y0)}
-            stroke="#ef4444"
+            stroke={marqueeColor}
             strokeWidth={1.5}
             dash={[6, 4]}
-            fill="rgba(239,68,68,0.08)"
+            fill={marqueeFill}
             listening={false}
           />
         )}

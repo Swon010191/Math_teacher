@@ -62,3 +62,66 @@ test('lưu bảng và mở lại trên máy', async ({ page }) => {
   await page.reload();
   await expect(page.getByTestId('quadratic-activity')).toBeVisible({ timeout: 15_000 });
 });
+
+test('công cụ Xóa: khoanh vùng xóa tất cả nét vẽ trong vùng', async ({ page }) => {
+  await page.goto('/');
+  const board = page.locator('.board-container');
+
+  await page.getByRole('button', { name: 'Bút' }).click();
+  const box = await board.boundingBox();
+  if (!box) throw new Error('Không tìm thấy vùng bảng');
+  for (const [sx, sy] of [
+    [300, 250],
+    [300, 330],
+  ]) {
+    await page.mouse.move(box.x + sx, box.y + sy);
+    await page.mouse.down();
+    await page.mouse.move(box.x + sx + 120, box.y + sy + 10);
+    await page.mouse.up();
+  }
+
+  await page.getByRole('button', { name: '⌫ Xóa' }).click();
+  await page.mouse.move(box.x + 280, box.y + 220);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 460, box.y + 380);
+  await page.mouse.up();
+
+  await expect(page.getByRole('status')).toContainText('Đã xóa 2 đối tượng');
+});
+
+test('công cụ Chọn: khoanh vùng chọn nét vẽ và kéo di chuyển cùng nhau', async ({ page }) => {
+  await page.goto('/');
+  const board = page.locator('.board-container');
+
+  await page.getByRole('button', { name: 'Bút' }).click();
+  const box = await board.boundingBox();
+  if (!box) throw new Error('Không tìm thấy vùng bảng');
+  for (const [sx, sy] of [
+    [300, 250],
+    [300, 330],
+  ]) {
+    await page.mouse.move(box.x + sx, box.y + sy);
+    await page.mouse.down();
+    await page.mouse.move(box.x + sx + 120, box.y + sy + 10);
+    await page.mouse.up();
+  }
+
+  await page.getByRole('button', { name: 'Chọn' }).click();
+  await page.mouse.move(box.x + 280, box.y + 220);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 460, box.y + 380);
+  await page.mouse.up();
+
+  await page.mouse.move(box.x + 360, box.y + 300);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 360 + 40, box.y + 300 + 30);
+  await page.mouse.up();
+
+  await page.getByRole('button', { name: '⌫ Xóa' }).click();
+  await page.mouse.move(box.x + 280, box.y + 220);
+  await page.mouse.down();
+  await page.mouse.move(box.x + 500, box.y + 420);
+  await page.mouse.up();
+
+  await expect(page.getByRole('status')).toContainText('Đã xóa 2 đối tượng');
+});

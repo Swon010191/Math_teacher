@@ -19,13 +19,13 @@ interface AppState {
   activities: Record<string, unknown>;
   tool: Tool;
   viewport: Viewport;
-  selectedId: string | null;
+  selectedIds: string[];
   confirm: ConfirmState;
   toast: string | null;
 
   setTool: (tool: Tool) => void;
   setViewport: (viewport: Viewport) => void;
-  select: (id: string | null) => void;
+  setSelected: (ids: string[]) => void;
   addObject: (obj: BoardObject) => void;
   updateObject: (id: string, patch: Partial<BoardObject>) => void;
   removeObject: (id: string) => void;
@@ -58,13 +58,13 @@ export const useAppStore = create<AppState>()(
       activities: {},
       tool: 'pen',
       viewport: { x: 0, y: 0, scale: 1 },
-      selectedId: null,
+      selectedIds: [],
       confirm: initialConfirm,
       toast: null,
 
-      setTool: (tool) => set({ tool, selectedId: null }),
+      setTool: (tool) => set({ tool, selectedIds: [] }),
       setViewport: (viewport) => set({ viewport }),
-      select: (id) => set({ selectedId: id }),
+      setSelected: (ids) => set({ selectedIds: ids }),
 
       addObject: (obj) =>
         set((state) => ({ objects: [...state.objects, obj] })),
@@ -79,7 +79,7 @@ export const useAppStore = create<AppState>()(
       removeObject: (id) =>
         set((state) => ({
           objects: state.objects.filter((o) => o.id !== id),
-          selectedId: state.selectedId === id ? null : state.selectedId,
+          selectedIds: state.selectedIds.filter((sid) => sid !== id),
         })),
 
       setActivities: (activities) => set({ activities }),
@@ -93,7 +93,7 @@ export const useAppStore = create<AppState>()(
       clearToast: () => set({ toast: null }),
 
       loadBoard: (objects, activities) =>
-        set({ objects, activities, selectedId: null }),
+        set({ objects, activities, selectedIds: [] }),
     }),
     {
       name: 'ai-teaching-assistant-board',

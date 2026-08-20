@@ -66,7 +66,7 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
           <span className="tool-label">Xóa bảng</span>
         </button>
       </div>
-      <div className="toolbar-hint">Bút vẽ · Chọn AI rồi khoanh vùng công thức để nhận dạng · Lăn chuột để phóng to</div>
+      <div className="toolbar-hint">Bút để vẽ · Chọn/Xóa: khoanh vùng để chọn hoặc xóa · AI: khoanh vùng công thức để nhận dạng · Lăn chuột để phóng to</div>
     </div>
   );
 }

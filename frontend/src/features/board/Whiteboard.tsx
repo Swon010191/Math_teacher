@@ -33,6 +33,8 @@ export function Whiteboard() {
   const clearToast = useAppStore((s) => s.clearToast);
   const restoreBoard = useAppStore((s) => s.loadBoard);
   const setTool = useAppStore((s) => s.setTool);
+  const setSelected = useAppStore((s) => s.setSelected);
+  const selectedIds = useAppStore((s) => s.selectedIds);
 
   const [mathInputOpen, setMathInputOpen] = useState(false);
 
@@ -218,6 +220,8 @@ export function Whiteboard() {
                 obj={obj}
                 activity={activities[obj.activityId] as ActivityModel | undefined}
                 viewport={viewport}
+                selected={selectedIds.includes(obj.id)}
+                onSelect={() => setSelected([obj.id])}
                 onUpdate={updateObject}
                 onRemove={removeObject}
               />
@@ -247,12 +251,16 @@ function ActivityFrame({
   obj,
   activity,
   viewport,
+  selected,
+  onSelect,
   onUpdate,
   onRemove,
 }: {
   obj: ActivityObject;
   activity?: ActivityModel;
   viewport: { x: number; y: number; scale: number };
+  selected: boolean;
+  onSelect: () => void;
   onUpdate: (id: string, patch: Partial<BoardObject>) => void;
   onRemove: (id: string) => void;
 }) {
@@ -312,10 +320,17 @@ function ActivityFrame({
 
   return (
     <div
-      className={`activity-frame${dragging ? ' dragging' : ''}${resizing ? ' resizing' : ''}`}
+      className={`activity-frame${dragging ? ' dragging' : ''}${resizing ? ' resizing' : ''}${selected ? ' selected' : ''}`}
       style={style}
     >
-      <div className="activity-header" onPointerDown={onHeaderPointerDown} title="Kéo để di chuyển">
+      <div
+        className="activity-header"
+        onPointerDown={(e) => {
+          onSelect();
+          onHeaderPointerDown(e);
+        }}
+        title="Kéo để di chuyển"
+      >
         <span>Hoạt động: {activity?.source.latex ?? '...'}</span>
         <button className="activity-close" onClick={() => onRemove(obj.id)} title="Xóa hoạt động">
           ×

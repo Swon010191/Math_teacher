@@ -8,7 +8,7 @@ describe('appStore', () => {
       objects: [],
       activities: {},
       tool: 'pen',
-      selectedId: null,
+      selectedIds: [],
       confirm: { mode: 'none', latex: '', expression: '', confidence: 0, x: 0, y: 0 },
     });
   });
