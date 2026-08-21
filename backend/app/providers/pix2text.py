@@ -13,7 +13,7 @@ import os
 import httpx
 
 from app.providers.base import RecognitionProvider
-from app.providers.normalize import to_expression
+from app.providers.normalize import to_problem_expression
 from app.schemas.recognition import RecognizeResult
 
 
@@ -73,7 +73,7 @@ class Pix2TextProvider(RecognitionProvider):
         if not raw_text:
             raise RuntimeError("Pix2Text trả về công thức rỗng.")
         latex = raw_text
-        expression = to_expression(raw_text)
+        expression = to_problem_expression(raw_text)
         return RecognizeResult(
             latex=latex,
             expression=expression,

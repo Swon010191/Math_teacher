@@ -7,6 +7,54 @@ class MathAnalyzeRequest(BaseModel):
     expression: str = Field(..., min_length=1, max_length=500, description="Biểu thức, ví dụ: x**2 - 4*x + 3 hoặc x^2-4x+3")
 
 
+class MathSolveRequest(MathAnalyzeRequest):
+    """Yêu cầu giải phương trình trên miền thực."""
+
+    solve_for: str | None = Field(default=None, max_length=32)
+
+
+class SolveAnswer(BaseModel):
+    exact: str
+    latex: str
+    approximate: float | None = None
+    condition: str | None = None
+
+
+class SolveStepMetadata(BaseModel):
+    """Optional machine-readable meaning for a curriculum solve step."""
+
+    kind: str
+    rule: str | None = None
+    values: dict[str, str] = Field(default_factory=dict)
+
+
+class SolveStep(BaseModel):
+    expression: str
+    explanation: str
+    latex: str | None = None
+    metadata: SolveStepMetadata | None = None
+
+
+class SolveCase(BaseModel):
+    condition: str
+    status: str
+    answers: list[SolveAnswer] = Field(default_factory=list)
+
+
+class MathSolveResponse(BaseModel):
+    original_equation: str
+    canonical_equation: str
+    variables: list[str]
+    solve_for: str
+    degree: int
+    classification: str
+    status: str
+    answers: list[SolveAnswer] = Field(default_factory=list)
+    cases: list[SolveCase] = Field(default_factory=list)
+    steps: list[SolveStep]
+    verified: bool
+
+
 class QuadraticFeatures(BaseModel):
     """Đặc trưng của hàm bậc hai y = ax^2 + bx + c."""
 
@@ -40,6 +88,7 @@ class RationalFeatures(BaseModel):
     c: float
     d: float
     poles: list[float] = Field(..., description="Giá trị x hàm số không xác định")
+    holes: list[float] = Field(default_factory=list, description="Điểm khuyết do nhân tử bị triệt tiêu")
     vertical_asymptotes: list[str] = Field(..., description="Tiệm cận đứng, ví dụ ['x = 1']")
     horizontal_asymptote: str | None = Field(..., description="Tiệm cận ngang, ví dụ 'y = 2'")
     root: float | None = Field(..., description="Nghiệm của tử số (cắt trục hoành)")
@@ -103,6 +152,13 @@ class MathAnalyzeResponse(BaseModel):
         description="Loại: quadratic | linear | rational | trigonometric | exponential | logarithmic | unknown",
     )
     latex: str = Field(..., description="Biểu diễn LaTeX")
+    canonical_expression: str | None = Field(
+        default=None, description="Biểu thức canonical có thể parse lại"
+    )
+    source_variable: str = Field(default="x", description="Tên biến nguồn")
+    dependent_variable: str | None = Field(
+        default=None, description="Tên vế trái nếu đầu vào là định nghĩa hàm"
+    )
     quadratic: QuadraticFeatures | None = None
     linear: LinearFeatures | None = None
     rational: RationalFeatures | None = None

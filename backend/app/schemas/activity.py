@@ -1,5 +1,7 @@
 from pydantic import BaseModel, Field
 
+from app.schemas.math import MathSolveResponse
+
 
 class ActivitySource(BaseModel):
     """Nguồn gốc biểu thức của activity."""
@@ -13,6 +15,8 @@ class ActivityMath(BaseModel):
     """Kết quả chính xác từ Math Engine."""
 
     expression: str
+    source_variable: str = "x"
+    dependent_variable: str | None = None
     a: float | None = None
     b: float | None = None
     c: float | None = None
@@ -33,6 +37,7 @@ class ActivityMath(BaseModel):
     max_value: float | None = None
     min_value: float | None = None
     asymptotes: list[str] | None = None
+    holes: list[float] | None = None
     domain: str | None = None
 
 
@@ -56,5 +61,6 @@ class ActivityModel(BaseModel):
     type: str
     source: ActivitySource
     math: ActivityMath
+    solution: MathSolveResponse | None = None
     widgets: list[ActivityWidget]
     steps: list[ActivityStep]

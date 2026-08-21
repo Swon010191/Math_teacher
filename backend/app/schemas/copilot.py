@@ -13,6 +13,8 @@ class CopilotMathInput(BaseModel):
     """Đặc trưng toán học (do Math Engine tính) dùng làm đầu vào cho Copilot."""
 
     expression: str
+    source_variable: str = "x"
+    dependent_variable: str | None = None
     a: float | None = None
     b: float | None = None
     c: float | None = None
@@ -33,6 +35,7 @@ class CopilotMathInput(BaseModel):
     max_value: float | None = None
     min_value: float | None = None
     asymptotes: list[str] | None = None
+    holes: list[float] | None = None
     domain: str | None = None
 
 

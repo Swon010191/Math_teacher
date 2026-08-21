@@ -15,13 +15,14 @@ import os
 import httpx
 
 from app.providers.base import RecognitionProvider
-from app.providers.normalize import to_expression
+from app.providers.normalize import to_problem_expression
 from app.schemas.recognition import RecognizeResult
 
 _PROMPT = """Bạn là công cụ nhận dạng công thức toán học từ ảnh chụp bảng.
 Chỉ trả về MỘT đối tượng JSON hợp lệ với đúng 3 trường:
 - "latex": công thức dạng LaTeX, ví dụ "y = x^2 - 4x + 3"
-- "expression": biểu thức dạng SymPy (chỉ vế phải), ví dụ "x**2 - 4*x + 3"
+- "expression": toàn bộ công thức/phương trình dạng SymPy, giữ nguyên vế trái và dấu bằng,
+  ví dụ "y = x**2 - 4*x + 3" hoặc "2*u + 3 = 9"
 - "confidence": số thực từ 0 đến 1 thể hiện độ tin cậy của bạn
 Không thêm bất kỳ văn bản nào khác ngoài JSON."""
 
@@ -84,7 +85,7 @@ class OllamaVisionProvider(RecognitionProvider):
             ) from exc
 
         latex = str(data.get("latex", "")).strip()
-        expression = to_expression(str(data.get("expression", latex)))
+        expression = to_problem_expression(str(data.get("expression", latex)))
         confidence = float(data.get("confidence", 0.7))
         if not latex or not expression:
             raise RuntimeError(f"Ollama trả về công thức rỗng (model {self._model}).")

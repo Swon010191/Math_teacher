@@ -12,9 +12,9 @@ from app.providers.base import RecognitionProvider
 from app.schemas.recognition import RecognizeResult
 
 _SAMPLES: list[tuple[str, str, float]] = [
-    ("y = x^2 - 4x + 3", "x**2 - 4*x + 3", 0.94),
-    ("y = 2x^2 + 3x - 2", "2*x**2 + 3*x - 2", 0.88),
-    ("y = -x^2 + 6x - 5", "-x**2 + 6*x - 5", 0.91),
+    ("y = x^2 - 4x + 3", "y = x**2 - 4*x + 3", 0.94),
+    ("y = 2x^2 + 3x - 2", "y = 2*x**2 + 3*x - 2", 0.88),
+    ("y = -x^2 + 6x - 5", "y = -x**2 + 6*x - 5", 0.91),
 ]
 
 

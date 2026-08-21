@@ -64,3 +64,26 @@ def to_expression(text: str) -> str:
     if match:
         expr = match.group(1)
     return _latex_to_sympy(expr)
+
+
+def to_problem_expression(text: str) -> str:
+    """Chuẩn hóa công thức/phương trình nhưng bảo toàn vế trái và dấu bằng."""
+    prepared = re.sub(
+        r"\^\{([^{}]*)\}", lambda match: f"**({match.group(1)})", text.strip()
+    )
+    expression = _latex_to_sympy(prepared)
+    for glyph, replacement in (
+        ("·", "*"),
+        ("×", "*"),
+        ("∗", "*"),
+        ("∙", "*"),
+        ("÷", "/"),
+    ):
+        expression = expression.replace(glyph, replacement)
+    superscripts = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+    expression = re.sub(
+        r"([⁰¹²³⁴⁵⁶⁷⁸⁹]+)",
+        lambda match: "**" + match.group(1).translate(superscripts),
+        expression,
+    )
+    return expression

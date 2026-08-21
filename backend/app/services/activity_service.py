@@ -10,7 +10,7 @@ from app.schemas.activity import (
     ActivityWidget,
 )
 from app.schemas.math import MathAnalyzeResponse
-from app.services.math_service import analyze_expression
+from app.services.math_service import analyze_expression, solve_equation
 
 
 def build_activity(
@@ -22,17 +22,17 @@ def build_activity(
     """Tạo Activity theo loại biểu thức (bậc hai, bậc nhất, phân thức, lượng giác, mũ, logarit)."""
     analysis = analyze_expression(expression)
     if analysis.kind == "quadratic":
-        return build_quadratic_activity(latex, expression, confidence, confirmed)
+        return build_quadratic_activity(latex, expression, confidence, confirmed, analysis)
     if analysis.kind == "linear":
-        return build_linear_activity(latex, expression, confidence, confirmed)
+        return build_linear_activity(latex, expression, confidence, confirmed, analysis)
     if analysis.kind == "rational":
-        return build_rational_activity(latex, expression, confidence, confirmed)
+        return build_rational_activity(latex, expression, confidence, confirmed, analysis)
     if analysis.kind == "trigonometric":
-        return build_trig_activity(latex, expression, confidence, confirmed)
+        return build_trig_activity(latex, expression, confidence, confirmed, analysis)
     if analysis.kind == "exponential":
-        return build_exponential_activity(latex, expression, confidence, confirmed)
+        return build_exponential_activity(latex, expression, confidence, confirmed, analysis)
     if analysis.kind == "logarithmic":
-        return build_logarithmic_activity(latex, expression, confidence, confirmed)
+        return build_logarithmic_activity(latex, expression, confidence, confirmed, analysis)
     raise ValueError("MVP hỗ trợ hàm bậc hai, bậc nhất, phân thức, lượng giác sin/cos, mũ và logarit.")
 
 
@@ -41,23 +41,28 @@ def build_linear_activity(
     expression: str,
     confidence: float,
     confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
 ) -> ActivityModel:
     """Tạo Activity hàm bậc nhất (schemaVersion 1.0) từ biểu thức đã xác nhận."""
-    analysis = analyze_expression(expression)
+    analysis = analysis or analyze_expression(expression)
     if analysis.kind != "linear" or analysis.linear is None:
         raise ValueError("Activity hàm bậc nhất yêu cầu biểu thức bậc nhất hợp lệ.")
     l = analysis.linear
+    canonical = analysis.canonical_expression or analysis.normalized_expression
     return ActivityModel(
         schemaVersion="1.0",
         type="linear_function",
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
-            expression=analysis.normalized_expression,
+            expression=canonical,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
             a=l.a,
             b=l.b,
             y_intercept=l.y_intercept,
             root=l.root,
         ),
+        solution=solve_equation(canonical, analysis.source_variable),
         widgets=[
             ActivityWidget(type="graph"),
             ActivityWidget(type="parameter_slider", parameters=["a", "b"]),
@@ -74,18 +79,22 @@ def build_quadratic_activity(
     expression: str,
     confidence: float,
     confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
 ) -> ActivityModel:
     """Tạo Activity hàm bậc hai (schemaVersion 1.0) từ biểu thức đã xác nhận."""
-    analysis = analyze_expression(expression)
+    analysis = analysis or analyze_expression(expression)
     if analysis.kind != "quadratic" or analysis.quadratic is None:
         raise ValueError("Activity hàm bậc hai yêu cầu biểu thức bậc hai hợp lệ.")
     q = analysis.quadratic
+    canonical = analysis.canonical_expression or analysis.normalized_expression
     return ActivityModel(
         schemaVersion="1.0",
         type="quadratic_function",
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
-            expression=analysis.normalized_expression,
+            expression=canonical,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
             a=q.a,
             b=q.b,
             c=q.c,
@@ -96,6 +105,7 @@ def build_quadratic_activity(
             discriminant=q.discriminant,
             direction=q.direction,
         ),
+        solution=solve_equation(canonical, analysis.source_variable),
         widgets=[
             ActivityWidget(type="graph"),
             ActivityWidget(type="parameter_slider", parameters=["a", "b", "c"]),
@@ -113,9 +123,10 @@ def build_rational_activity(
     expression: str,
     confidence: float,
     confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
 ) -> ActivityModel:
     """Tạo Activity hàm phân thức bậc nhất/bậc nhất (schemaVersion 1.0)."""
-    analysis = analyze_expression(expression)
+    analysis = analysis or analyze_expression(expression)
     if analysis.kind != "rational" or analysis.rational is None:
         raise ValueError("Activity hàm phân thức yêu cầu biểu thức (ax+b)/(cx+d) hợp lệ.")
     r = analysis.rational
@@ -127,7 +138,9 @@ def build_rational_activity(
         type="rational_function",
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
-            expression=analysis.normalized_expression,
+            expression=analysis.canonical_expression or analysis.normalized_expression,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
             a=r.a,
             b=r.b,
             c=r.c,
@@ -136,6 +149,7 @@ def build_rational_activity(
             y_intercept=r.y_intercept,
             domain=r.domain,
             asymptotes=asymptotes,
+            holes=r.holes,
         ),
         widgets=[
             ActivityWidget(type="graph"),
@@ -154,9 +168,10 @@ def build_trig_activity(
     expression: str,
     confidence: float,
     confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
 ) -> ActivityModel:
     """Tạo Activity hàm lượng giác y = a*sin(bx+c)+d hoặc a*cos(bx+c)+d."""
-    analysis = analyze_expression(expression)
+    analysis = analysis or analyze_expression(expression)
     if analysis.kind != "trigonometric" or analysis.trigonometric is None:
         raise ValueError("Activity lượng giác yêu cầu biểu thức a*sin(bx+c)+d hoặc a*cos(bx+c)+d hợp lệ.")
     t = analysis.trigonometric
@@ -165,7 +180,9 @@ def build_trig_activity(
         type="trig_function",
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
-            expression=analysis.normalized_expression,
+            expression=analysis.canonical_expression or analysis.normalized_expression,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
             func=t.func,
             a=t.a,
             b=t.b,
@@ -196,9 +213,10 @@ def build_exponential_activity(
     expression: str,
     confidence: float,
     confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
 ) -> ActivityModel:
     """Tạo Activity hàm mũ y = a*b^x + c."""
-    analysis = analyze_expression(expression)
+    analysis = analysis or analyze_expression(expression)
     if analysis.kind != "exponential" or analysis.exponential is None:
         raise ValueError("Activity hàm mũ yêu cầu biểu thức a*b^x + c hợp lệ.")
     e = analysis.exponential
@@ -207,7 +225,9 @@ def build_exponential_activity(
         type="exponential_function",
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
-            expression=analysis.normalized_expression,
+            expression=analysis.canonical_expression or analysis.normalized_expression,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
             a=e.a,
             b=e.b,
             c=e.c,
@@ -234,9 +254,10 @@ def build_logarithmic_activity(
     expression: str,
     confidence: float,
     confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
 ) -> ActivityModel:
     """Tạo Activity hàm logarit y = a*log(x, base) + c."""
-    analysis = analyze_expression(expression)
+    analysis = analysis or analyze_expression(expression)
     if analysis.kind != "logarithmic" or analysis.logarithmic is None:
         raise ValueError("Activity hàm logarit yêu cầu biểu thức a*log(x, base) + c hợp lệ.")
     lg = analysis.logarithmic
@@ -245,7 +266,9 @@ def build_logarithmic_activity(
         type="logarithmic_function",
         source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
         math=ActivityMath(
-            expression=analysis.normalized_expression,
+            expression=analysis.canonical_expression or analysis.normalized_expression,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
             a=lg.a,
             b=lg.b,
             c=lg.c,
