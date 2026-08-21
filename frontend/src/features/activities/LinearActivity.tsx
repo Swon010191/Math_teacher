@@ -11,6 +11,8 @@ import { formatNum } from './quadraticMath';
 const { yellow: YELLOW } = FEATURE_COLORS;
 
 export function LinearActivity({ activity }: { activity: ActivityModel }) {
+  const sourceVariable = activity.math.source_variable ?? 'x';
+  const dependentVariable = activity.math.dependent_variable ?? 'y';
   const initial = useMemo<Record<string, number>>(
     () => ({
       a: activity.math.a ?? 1,
@@ -21,8 +23,8 @@ export function LinearActivity({ activity }: { activity: ActivityModel }) {
 
   const formula = useCallback(
     (p: Record<string, number>) =>
-      `${formatNum(p.a)}x${p.b >= 0 ? '+' : '-'}${formatNum(Math.abs(p.b))}`,
-    [],
+      `${dependentVariable} = ${formatNum(p.a)}${sourceVariable}${p.b >= 0 ? '+' : '-'}${formatNum(Math.abs(p.b))}`,
+    [dependentVariable, sourceVariable],
   );
 
   const curve = useCallback((x: number, p: Record<string, number>) => p.a * x + p.b, []);
@@ -50,10 +52,10 @@ export function LinearActivity({ activity }: { activity: ActivityModel }) {
       <>
         {revealed.has('root') && root !== null && (
           <span className="stat">
-            Giao điểm trục x: ({formatNum(root)}, 0)
+            Giao điểm trục {sourceVariable}: ({formatNum(root)}, 0)
           </span>
         )}
-        <span className="stat muted">Cắt trục y tại y = {formatNum(params.b)}</span>
+        <span className="stat muted">Cắt trục {dependentVariable} tại {dependentVariable} = {formatNum(params.b)}</span>
       </>
     );
   };

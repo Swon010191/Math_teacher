@@ -1,6 +1,10 @@
 /** Client gọi backend Math Engine (FastAPI). */
 
 import type { CopilotSuggestion } from '../features/copilot/copilotTypes';
+import type { ActivityModel, MathSolveResponse } from '../features/activities/activityTypes';
+import type { KnowledgeRequest, KnowledgeResponse } from '../features/knowledge/knowledgeTypes';
+
+export type { ActivityModel, MathSolveResponse } from '../features/activities/activityTypes';
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
 
@@ -161,6 +165,9 @@ export interface MathAnalyzeResponse {
     | 'logarithmic'
     | 'unknown';
   latex: string;
+  canonical_expression?: string | null;
+  source_variable: string;
+  dependent_variable?: string | null;
   quadratic?: QuadraticFeatures;
   linear?: { a: number; b: number; root: number | null; y_intercept: number; sample_points: number[][] };
   rational?: RationalFeatures;
@@ -175,39 +182,6 @@ export interface RecognizeResult {
   confidence: number;
   provider: string;
   raw?: string | null;
-}
-
-export interface ActivityModel {
-  schemaVersion: string;
-  type: string;
-  source: { latex: string; confidence: number; confirmed: boolean };
-  math: {
-    expression: string;
-    a?: number | null;
-    b?: number | null;
-    c?: number | null;
-    d?: number | null;
-    func?: 'sin' | 'cos' | null;
-    base?: number | null;
-    root?: number | null;
-    vertex?: [number, number] | null;
-    roots?: number[] | null;
-    axis?: string | null;
-    y_intercept?: number | null;
-    discriminant?: number | null;
-    direction?: 'up' | 'down' | null;
-    amplitude?: number | null;
-    period?: number | null;
-    phase_shift?: number | null;
-    midline?: number | null;
-    max_value?: number | null;
-    min_value?: number | null;
-    asymptotes?: string[] | null;
-    domain?: string | null;
-  };
-  widgets: { type: string; parameters?: string[] }[];
-  steps: { visible: string[] }[];
-  copilot?: CopilotSuggestion;
 }
 
 export async function analyzeExpression(
@@ -276,5 +250,31 @@ export async function setCopilotProvider(
   return request<CopilotProviderState>('/api/copilot/provider', {
     method: 'PUT',
     body: JSON.stringify({ provider }),
+  });
+}
+
+export async function solveEquation(
+  expression: string,
+  solveFor?: string,
+): Promise<MathSolveResponse> {
+  return request<MathSolveResponse>('/api/math/solve', {
+    method: 'POST',
+    body: JSON.stringify({ expression, ...(solveFor ? { solve_for: solveFor } : {}) }),
+  });
+}
+
+export async function getRelatedKnowledge(
+  expression: string,
+  includeOriginal = true,
+  includeVietnamese = true,
+): Promise<KnowledgeResponse> {
+  const body: KnowledgeRequest = {
+    expression,
+    include_original: includeOriginal,
+    include_vietnamese: includeVietnamese,
+  };
+  return request<KnowledgeResponse>('/api/knowledge/related', {
+    method: 'POST',
+    body: JSON.stringify(body),
   });
 }

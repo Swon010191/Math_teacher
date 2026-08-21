@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ActivityModel } from '../src/features/activities/activityTypes';
@@ -61,5 +61,15 @@ describe('LogarithmicActivity', () => {
     render(<LogarithmicActivity activity={activity} />);
     expect(screen.getByRole('button', { name: 'Bước trước' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bước tiếp' })).toBeInTheDocument();
+  });
+
+  it('chuyển invalid → valid khi a đi qua 0', () => {
+    render(<LogarithmicActivity activity={activity} />);
+    const slider = screen.getByRole('slider', { name: 'Hệ số a' });
+    fireEvent.change(slider, { target: { value: '0' } });
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('a = 0')).toBeInTheDocument();
+    fireEvent.change(slider, { target: { value: '1' } });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

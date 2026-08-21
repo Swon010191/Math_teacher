@@ -9,6 +9,7 @@ import { LogarithmicActivity } from './LogarithmicActivity';
 import { QuadraticActivity } from './QuadraticActivity';
 import { RationalActivity } from './RationalActivity';
 import { TrigActivity } from './TrigActivity';
+import { SolutionActivity } from './SolutionActivity';
 
 export const ACTIVITY_WIDGETS: Record<
   string,
@@ -20,6 +21,7 @@ export const ACTIVITY_WIDGETS: Record<
   trig_function: TrigActivity,
   exponential_function: ExponentialActivity,
   logarithmic_function: LogarithmicActivity,
+  equation_solution: SolutionActivity,
 };
 
 export const ACTIVITY_KIND_LABELS: Record<string, string> = {
@@ -32,7 +34,7 @@ export const ACTIVITY_KIND_LABELS: Record<string, string> = {
 };
 
 export function activityWidgetFor(type: string) {
-  return ACTIVITY_WIDGETS[type] ?? QuadraticActivity;
+  return ACTIVITY_WIDGETS[type] ?? null;
 }
 
 export function activityKindLabel(kind: string): string {

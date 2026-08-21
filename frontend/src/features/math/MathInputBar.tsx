@@ -24,8 +24,9 @@ export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
 
   return (
     <div className="math-input-bar" role="dialog" aria-label="Nhập công thức">
-      <span className="math-input-prefix">y =</span>
+      <label className="math-input-prefix" htmlFor="typed-math-input">Công thức</label>
       <input
+        id="typed-math-input"
         className="math-input"
         value={value}
         onChange={(e) => setValue(e.target.value)}
@@ -33,7 +34,7 @@ export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
           if (e.key === 'Enter') void handleSubmit();
           if (e.key === 'Escape') onCancel();
         }}
-        placeholder="x^2 - 4x + 3"
+        placeholder="z=2t+1 hoặc 2u+3=9"
         autoFocus
       />
       <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={busy}>

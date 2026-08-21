@@ -7,12 +7,14 @@ import {
   type FeatureCtx,
 } from './ActivityCanvas';
 import { formatNum } from './quadraticMath';
-import { formatTrig, trigFeatures, type TrigParams } from './trigMath';
+import { formatTrig, trigFeatures, validateTrigParams, type TrigParams } from './trigMath';
 
 const { yellow: YELLOW, green: GREEN } = FEATURE_COLORS;
 
 export function TrigActivity({ activity }: { activity: ActivityModel }) {
   const func: 'sin' | 'cos' = activity.math.func === 'cos' ? 'cos' : 'sin';
+  const sourceVariable = activity.math.source_variable ?? 'x';
+  const dependentVariable = activity.math.dependent_variable ?? 'y';
 
   const initial = useMemo<Record<string, number>>(
     () => ({
@@ -25,18 +27,22 @@ export function TrigActivity({ activity }: { activity: ActivityModel }) {
   );
 
   const formula = useCallback(
-    (p: Record<string, number>) => formatTrig(p as unknown as TrigParams, func),
-    [func],
+    (p: Record<string, number>) => formatTrig(p as unknown as TrigParams, func, sourceVariable, dependentVariable),
+    [dependentVariable, func, sourceVariable],
   );
 
   const curve = useCallback(
     (x: number, p: Record<string, number>) => {
       const q = p as unknown as TrigParams;
-      const b = Math.abs(q.b) < 1e-6 ? (q.b < 0 ? -0.01 : 0.01) : q.b;
-      const arg = b * x + q.c;
+      const arg = q.b * x + q.c;
       return q.a * (func === 'sin' ? Math.sin(arg) : Math.cos(arg)) + q.d;
     },
     [func],
+  );
+
+  const validate = useCallback(
+    (p: Record<string, number>) => validateTrigParams(p as unknown as TrigParams),
+    [],
   );
 
   const drawFeatures = useCallback(
@@ -91,7 +97,7 @@ export function TrigActivity({ activity }: { activity: ActivityModel }) {
     return (
       <>
         {revealed.has('midline') && (
-          <span className="stat">Đường trung bình: y = {formatNum(f.midline)}</span>
+          <span className="stat">Đường trung bình: {dependentVariable} = {formatNum(f.midline)}</span>
         )}
         {revealed.has('max_min') && (
           <span className="stat">
@@ -103,7 +109,7 @@ export function TrigActivity({ activity }: { activity: ActivityModel }) {
             Nghiệm:{' '}
             {f.roots.length === 0
               ? 'không có'
-              : f.roots.map((r) => `x = ${formatNum(r)}`).join(', ')}
+               : f.roots.map((r) => `${sourceVariable} = ${formatNum(r)}`).join(', ')}
           </span>
         )}
         <span className="stat muted">Chu kỳ T = {formatNum(f.period)}</span>
@@ -117,6 +123,7 @@ export function TrigActivity({ activity }: { activity: ActivityModel }) {
       initial={initial}
       formula={formula}
       curve={curve}
+      validate={validate}
       drawFeatures={drawFeatures}
       stats={stats}
       chips={[

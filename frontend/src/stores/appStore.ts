@@ -12,6 +12,7 @@ export interface ConfirmState {
   confidence: number;
   x: number;
   y: number;
+  source?: 'typed' | 'ocr';
 }
 
 interface AppState {
@@ -49,6 +50,7 @@ const initialConfirm: ConfirmState = {
   confidence: 0,
   x: 0,
   y: 0,
+  source: 'ocr',
 };
 
 export const useAppStore = create<AppState>()(
@@ -77,10 +79,16 @@ export const useAppStore = create<AppState>()(
         })),
 
       removeObject: (id) =>
-        set((state) => ({
-          objects: state.objects.filter((o) => o.id !== id),
-          selectedIds: state.selectedIds.filter((sid) => sid !== id),
-        })),
+        set((state) => {
+          const removed = state.objects.find((object) => object.id === id);
+          const activities = { ...state.activities };
+          if (removed?.type === 'activity') delete activities[removed.activityId];
+          return {
+            objects: state.objects.filter((object) => object.id !== id),
+            activities,
+            selectedIds: state.selectedIds.filter((selectedId) => selectedId !== id),
+          };
+        }),
 
       setActivities: (activities) => set({ activities }),
       upsertActivity: (id, activity) =>

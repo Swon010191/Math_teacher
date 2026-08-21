@@ -21,53 +21,79 @@ export interface TrigFeatures {
   roots: number[];
 }
 
-function safeB(b: number): number {
-  return Math.abs(b) < 1e-6 ? (b < 0 ? -0.01 : 0.01) : b;
+export function validateTrigParams(p: TrigParams): string | null {
+  if (p.a === 0) return 'Tham số không hợp lệ: a phải khác 0.';
+  if (p.b === 0) return 'Tham số không hợp lệ: b phải khác 0.';
+  return null;
 }
 
-function numericRoots(
-  f: (x: number) => number,
+function ulp(value: number): number {
+  if (value === 0) return Number.MIN_VALUE;
+  const exponent = Math.floor(Math.log2(Math.abs(value)));
+  return exponent < -1022 ? Number.MIN_VALUE : 2 ** (exponent - 52);
+}
+
+function analyticalRoots(
+  p: TrigParams,
+  func: 'sin' | 'cos',
   center: number,
   period: number,
 ): number[] {
   const lo = center - period;
   const hi = center + period;
-  const roots: number[] = [];
-  const step = 0.02;
-  let prevT = lo;
-  let prevY = f(lo);
-  let t = lo + step;
-  while (t <= hi + 1e-9) {
-    const y = f(t);
-    if (Number.isFinite(prevY) && Number.isFinite(y)) {
-      if (prevY === 0) roots.push(prevT);
-      else if ((prevY > 0) !== (y > 0)) roots.push((prevT + t) / 2);
-    }
-    prevT = t;
-    prevY = y;
-    t += step;
-  }
+  const scale = Math.max(Math.abs(lo), Math.abs(hi), Math.abs(center), Math.abs(period), Number.MIN_VALUE);
+  const boundaryTolerance = Math.max(Math.abs(period) * 1e-12, Number.EPSILON * scale * 4);
+  let target = -p.d / p.a;
+  const targetTolerance = Math.max(
+    4 * ulp(target),
+    (4 * (ulp(p.d) + Math.abs(target) * ulp(p.a))) / Math.abs(p.a),
+  );
+  if (target > 1 && target <= 1 + targetTolerance) target = 1;
+  else if (target < -1 && target >= -1 - targetTolerance) target = -1;
+  else if (target < -1 || target > 1) return [];
+  const principal = func === 'sin' ? Math.asin(target) : Math.acos(target);
+  const families = func === 'sin' ? [principal, Math.PI - principal] : [principal, -principal];
+  const roots = families.flatMap((theta) =>
+    Array.from({ length: 7 }, (_, index) => index - 3)
+      .map((k) => (theta + 2 * Math.PI * k - p.c) / p.b)
+      .filter((root) => root >= lo - boundaryTolerance && root <= hi + boundaryTolerance),
+  );
+  roots.sort((left, right) => left - right);
   const deduped: number[] = [];
   for (const r of roots) {
-    if (!deduped.length || Math.abs(r - deduped[deduped.length - 1]) > 0.05) {
+    const previous = deduped[deduped.length - 1];
+    const rootScale = Math.max(Math.abs(r), Math.abs(previous ?? 0), Math.abs(period), Number.MIN_VALUE);
+    const tolerance = Math.max(Math.abs(period) * 1e-12, Number.EPSILON * rootScale * 4);
+    if (!deduped.length || Math.abs(r - previous) > tolerance) {
       deduped.push(r);
     }
   }
-  return deduped.map((r) => Math.round(r * 100) / 100);
+  return deduped;
 }
 
 export function trigFeatures(p: TrigParams, func: 'sin' | 'cos'): TrigFeatures {
-  const a = p.a === 0 ? 0.0001 : p.a;
-  const b = safeB(p.b);
+  const error = validateTrigParams(p);
+  if (error) throw new RangeError(error);
+  const a = p.a;
+  const b = p.b;
   const amplitude = Math.abs(a);
   const period = (2 * Math.PI) / Math.abs(b);
   const phaseShift = -p.c / b;
+  const windowResolution = Math.max(
+    ulp(phaseShift),
+    ulp(phaseShift - period),
+    ulp(phaseShift + period),
+  );
+  if (period <= windowResolution) {
+    throw new RangeError('Chu kỳ nhỏ hơn độ phân giải tại cửa sổ phân tích.');
+  }
   const midline = p.d;
-  const base = func === 'sin' ? Math.PI / 2 : 0;
-  const xMax = (base - p.c) / b;
-  const xMin = (base + Math.PI - p.c) / b;
-  const rootFn = (x: number) => a * (func === 'sin' ? Math.sin(b * x + p.c) : Math.cos(b * x + p.c)) + p.d;
-  const roots = numericRoots(rootFn, phaseShift, period);
+  const positiveMaximum = func === 'sin' ? Math.PI / 2 : 0;
+  const thetaMax = a > 0 ? positiveMaximum : positiveMaximum + Math.PI;
+  const thetaMin = a > 0 ? positiveMaximum + Math.PI : positiveMaximum;
+  const xMax = (thetaMax - p.c) / b;
+  const xMin = (thetaMin - p.c) / b;
+  const roots = analyticalRoots(p, func, phaseShift, period);
   return {
     amplitude,
     period,
@@ -81,11 +107,16 @@ export function trigFeatures(p: TrigParams, func: 'sin' | 'cos'): TrigFeatures {
   };
 }
 
-export function formatTrig(p: TrigParams, func: 'sin' | 'cos'): string {
+export function formatTrig(
+  p: TrigParams,
+  func: 'sin' | 'cos',
+  sourceVariable = 'x',
+  dependentVariable = 'y',
+): string {
   const amp =
     p.a === 0 ? '0' : p.a === 1 ? '' : p.a === -1 ? '-' : formatNum(p.a);
-  const inner = `${formatNum(p.b)}x${p.c >= 0 ? '+' : '-'}${formatNum(Math.abs(p.c))}`;
-  let s = `y = ${amp}\\${func}(${inner})`;
+  const inner = `${formatNum(p.b)}${sourceVariable}${p.c >= 0 ? '+' : '-'}${formatNum(Math.abs(p.c))}`;
+  let s = `${dependentVariable} = ${amp}\\${func}(${inner})`;
   if (p.d !== 0) s += `${p.d > 0 ? '+' : '-'}${formatNum(Math.abs(p.d))}`;
   return s;
 }

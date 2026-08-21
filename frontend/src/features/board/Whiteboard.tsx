@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 
 import {
-  analyzeExpression,
   createActivity,
   recognizeRegion,
+  solveEquation,
   type ActivityModel,
 } from '../../api/client';
 import { clearBoard, loadBoard, saveBoard } from '../../api/storage';
 import { makeId, useAppStore } from '../../stores/appStore';
-import { activityKindLabel, activityWidgetFor } from '../activities/activityRegistry';
+import { ActivityFrame } from '../activities/ActivityFrame';
+import { normalizeMathInput, type MathInputIntent } from '../math/classifyMathInput';
 import { CopilotPanel } from '../copilot/CopilotPanel';
 import type { CopilotSuggestion } from '../copilot/copilotTypes';
 import { MathInputBar } from '../math/MathInputBar';
@@ -23,6 +24,7 @@ export function Whiteboard() {
   const objects = useAppStore((s) => s.objects);
   const activities = useAppStore((s) => s.activities);
   const viewport = useAppStore((s) => s.viewport);
+  const setViewport = useAppStore((s) => s.setViewport);
   const confirm = useAppStore((s) => s.confirm);
   const toast = useAppStore((s) => s.toast);
   const addObject = useAppStore((s) => s.addObject);
@@ -59,6 +61,7 @@ export function Whiteboard() {
           confidence: result.confidence,
           x,
           y,
+          source: 'ocr',
         });
       } catch (error) {
         showToast(`Lỗi nhận dạng: ${(error as Error).message}`);
@@ -68,57 +71,86 @@ export function Whiteboard() {
   );
 
   const handleConfirmExpression = useCallback(
-    async (expression: string) => {
+    async (
+      expression: string,
+      options: { intent: MathInputIntent; solveFor?: string },
+    ) => {
       try {
-        const activity = await createActivity(expression);
+        let activity: ActivityModel;
+        if (options.intent === 'solve') {
+          const solution = await solveEquation(expression, options.solveFor);
+          activity = {
+            schemaVersion: '1.0',
+            type: 'equation_solution',
+            source: {
+              latex: expression === confirm.expression ? confirm.latex : expression,
+              confidence: confirm.confidence,
+              confirmed: true,
+            },
+            math: {
+              expression: solution.original_equation,
+              source_variable: solution.solve_for,
+              dependent_variable: null,
+            },
+            widgets: [{ type: 'solution' }],
+            steps: [],
+            solution,
+          };
+        } else {
+          const created = await createActivity(normalizeMathInput(expression, 'function'));
+          activity = {
+            ...created,
+            source: {
+              ...created.source,
+              latex: expression === confirm.expression ? confirm.latex : created.source.latex,
+              confidence: confirm.confidence,
+              confirmed: true,
+            },
+          };
+        }
         const activityId = makeId();
         upsertActivity(activityId, activity);
+        const activityCount = objects.filter((item) => item.type === 'activity').length;
+        const offset = (activityCount % 8) * 24;
         const obj: ActivityObject = {
           id: makeId(),
           type: 'activity',
           activityId,
-          x: confirm.x,
-          y: confirm.y,
+          x: confirm.x + offset,
+          y: confirm.y + offset,
           width: 420,
           height: 340,
         };
         addObject(obj);
+        setSelected([obj.id]);
         clearConfirm();
-        showToast('Đã tạo hoạt động giảng dạy trên bảng');
+        showToast(options.intent === 'solve' ? 'Đã giải phương trình' : 'Đã tạo hoạt động giảng dạy trên bảng');
       } catch (error) {
         showToast(`Lỗi tạo activity: ${(error as Error).message}`);
+        throw error;
       }
     },
-    [confirm.x, confirm.y, upsertActivity, addObject, clearConfirm, showToast],
+    [confirm, objects, upsertActivity, addObject, setSelected, clearConfirm, showToast],
   );
 
   const handleTypedInput = useCallback(
     async (raw: string) => {
       setMathInputOpen(false);
-      try {
-        const analysis = await analyzeExpression(raw);
-        const activity = await createActivity(raw);
-        const activityId = makeId();
-        upsertActivity(activityId, activity);
-        const center = {
-          x: (-viewport.x + 120) / viewport.scale,
-          y: (-viewport.y + 80) / viewport.scale,
-        };
-        addObject({
-          id: makeId(),
-          type: 'activity',
-          activityId,
-          x: center.x,
-          y: center.y,
-          width: 420,
-          height: 340,
-        } as ActivityObject);
-        showToast(`Đã phân tích ${activityKindLabel(analysis.kind)}: ${activity.math.expression}`);
-      } catch (error) {
-        showToast(`Lỗi: ${(error as Error).message}`);
-      }
+      const center = {
+        x: (-viewport.x + 120) / viewport.scale,
+        y: (-viewport.y + 80) / viewport.scale,
+      };
+      setConfirm({
+        mode: 'math',
+        latex: raw,
+        expression: raw,
+        confidence: 1,
+        x: center.x,
+        y: center.y,
+        source: 'typed',
+      });
     },
-    [viewport, upsertActivity, addObject, showToast],
+    [viewport, setConfirm],
   );
 
   const handleAddText = useCallback(
@@ -205,6 +237,18 @@ export function Whiteboard() {
     [activities, upsertActivity, showToast],
   );
 
+  const zoomAtCenter = useCallback((nextScale: number) => {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const centerX = (rect?.width ?? 800) / 2;
+    const centerY = (rect?.height ?? 600) / 2;
+    const scale = Math.min(3, Math.max(0.3, nextScale));
+    setViewport({
+      scale,
+      x: centerX - ((centerX - viewport.x) / viewport.scale) * scale,
+      y: centerY - ((centerY - viewport.y) / viewport.scale) * scale,
+    });
+  }, [setViewport, viewport]);
+
   return (
     <div className="whiteboard">
       <Toolbar
@@ -235,11 +279,18 @@ export function Whiteboard() {
                 viewport={viewport}
                 selected={selectedIds.includes(obj.id)}
                 onSelect={() => setSelected([obj.id])}
+                onDeselect={() => setSelected([])}
                 onUpdate={updateObject}
                 onRemove={removeObject}
                 onOpenCopilot={() => setCopilotFor(obj.activityId)}
               />
             ))}
+        </div>
+        <div className="zoom-controls" role="group" aria-label="Thu phóng bảng">
+          <button onClick={() => zoomAtCenter(viewport.scale / 1.2)} aria-label="Thu nhỏ">−</button>
+          <output aria-live="polite">{Math.round(viewport.scale * 100)}%</output>
+          <button onClick={() => zoomAtCenter(viewport.scale * 1.2)} aria-label="Phóng to">+</button>
+          <button onClick={() => zoomAtCenter(1)} aria-label="Đặt lại thu phóng">↺</button>
         </div>
         {mathInputOpen && (
           <MathInputBar
@@ -253,6 +304,7 @@ export function Whiteboard() {
         latex={confirm.latex}
         expression={confirm.expression}
         confidence={confirm.confidence}
+        source={confirm.source}
         onCancel={clearConfirm}
         onConfirm={handleConfirmExpression}
       />
@@ -267,141 +319,6 @@ export function Whiteboard() {
         onApprove={(s) => handleApproveCopilot(copilotFor!, s)}
       />
       <Toast message={toast} />
-    </div>
-  );
-}
-
-function ActivityFrame({
-  obj,
-  activity,
-  viewport,
-  selected,
-  onSelect,
-  onUpdate,
-  onRemove,
-  onOpenCopilot,
-}: {
-  obj: ActivityObject;
-  activity?: ActivityModel;
-  viewport: { x: number; y: number; scale: number };
-  selected: boolean;
-  onSelect: () => void;
-  onUpdate: (id: string, patch: Partial<BoardObject>) => void;
-  onRemove: (id: string) => void;
-  onOpenCopilot: () => void;
-}) {
-  const [dragging, setDragging] = useState(false);
-  const [resizing, setResizing] = useState(false);
-  const [showCopilot, setShowCopilot] = useState(true);
-
-  const style: React.CSSProperties = {
-    transform: `translate(${viewport.x + obj.x * viewport.scale}px, ${viewport.y + obj.y * viewport.scale}px)`,
-    width: obj.width * viewport.scale,
-    height: obj.height * viewport.scale,
-  };
-
-  const onHeaderPointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startObjX = obj.x;
-    const startObjY = obj.y;
-    setDragging(true);
-    const move = (ev: PointerEvent) => {
-      onUpdate(obj.id, {
-        x: startObjX + (ev.clientX - startX) / viewport.scale,
-        y: startObjY + (ev.clientY - startY) / viewport.scale,
-      });
-    };
-    const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      setDragging(false);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-  };
-
-  const onResizePointerDown = (e: React.PointerEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    const startX = e.clientX;
-    const startY = e.clientY;
-    const startW = obj.width * viewport.scale;
-    const startH = obj.height * viewport.scale;
-    setResizing(true);
-    const move = (ev: PointerEvent) => {
-      onUpdate(obj.id, {
-        width: Math.max(260, (startW + ev.clientX - startX) / viewport.scale),
-        height: Math.max(200, (startH + ev.clientY - startY) / viewport.scale),
-      });
-    };
-    const up = () => {
-      window.removeEventListener('pointermove', move);
-      window.removeEventListener('pointerup', up);
-      setResizing(false);
-    };
-    window.addEventListener('pointermove', move);
-    window.addEventListener('pointerup', up);
-  };
-
-  const Widget = activity ? activityWidgetFor(activity.type) : null;
-
-  return (
-    <div
-      className={`activity-frame${dragging ? ' dragging' : ''}${resizing ? ' resizing' : ''}${selected ? ' selected' : ''}`}
-      style={style}
-    >
-      <div
-        className="activity-header"
-        onPointerDown={(e) => {
-          onSelect();
-          onHeaderPointerDown(e);
-        }}
-        title="Kéo để di chuyển"
-      >
-        <span>Hoạt động: {activity?.source.latex ?? '...'}</span>
-        <button
-          className="activity-copilot-btn"
-          onClick={onOpenCopilot}
-          title="Mở trợ lý giảng dạy (Teacher Copilot)"
-        >
-          💡 Gợi ý
-        </button>
-        <button className="activity-close" onClick={() => onRemove(obj.id)} title="Xóa hoạt động">
-          ×
-        </button>
-      </div>
-      {activity && Widget ? (
-        <Widget activity={activity} />
-      ) : (
-        <div className="activity-loading">Đang tải activity...</div>
-      )}
-      {activity?.copilot && (
-        <div className="activity-copilot" data-testid="activity-copilot">
-          <button
-            className="activity-copilot-toggle"
-            onClick={() => setShowCopilot((s) => !s)}
-            title="Hiện/ẩn gợi ý giảng dạy"
-          >
-            {showCopilot ? '▼' : '▶'} 💡 Gợi ý giảng dạy (đã duyệt)
-          </button>
-          {showCopilot && (
-            <div className="activity-copilot-body">
-              <p className="copilot-summary">{activity.copilot.summary}</p>
-              <ul>
-                {activity.copilot.key_points.slice(0, 4).map((p) => (
-                  <li key={p}>{p}</li>
-                ))}
-              </ul>
-              <p className="copilot-provider-note">
-                Đề xuất bởi Copilot · kiểm tra trước khi sử dụng
-              </p>
-            </div>
-          )}
-        </div>
-      )}
-      <div className="activity-resize" onPointerDown={onResizePointerDown} title="Kéo để thay đổi kích thước" />
     </div>
   );
 }
