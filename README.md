@@ -95,7 +95,8 @@ Thanh công cụ gồm 3 nhóm:
 > đang dùng (Mock/Ollama Vision/Pix2Text) ngay trong lúc chạy. Popover còn hiển
 > thị **trạng thái khả dụng của từng provider** (✓ xanh / ✗ đỏ kèm hướng dẫn cài
 > đặt nếu chưa có) và nút **"Kiểm tra lại"** để ping lại các dịch vụ. Khi đèn đỏ,
-> hãy khởi động backend: `uvicorn app.main:app --port 8000` (thư mục `backend/`).
+> hãy khởi động backend bằng `scripts\backend-start.ps1` (hoặc thủ công:
+> `uvicorn app.main:app --port 8000` trong thư mục `backend/`).
 
 **Recognition thật (tùy chọn):** mặc định dùng Mock (demo không cần cài gì).
 Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến môi trường trong
@@ -136,12 +137,21 @@ py -3.14 -m venv .venv
 .venv\Scripts\p2t.exe serve --port 8503       # chạy server tại http://localhost:8503
 ```
 
-**3. Khởi động lại sau khi tắt máy:** chỉ cần chạy lại 2 lệnh `ollama serve` và
-`p2t serve --port 8503` ở trên (máy này đã tạo 2 tác vụ Windows **Task Scheduler**
-`P2TServe` và `MathBackend` với trigger đăng nhập — **tự khởi động khi đăng nhập**
-cùng với Ollama Desktop). Khi backend chạy rồi, mở giao diện và bấm
-**"AI sẵn sàng"** → popover liệt kê 3 provider (Mock / Ollama Vision / Pix2Text),
-bấm **"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh ✓ là sẵn sàng dùng được.
+**3. Khởi động lại sau khi tắt máy:** dùng các script trong thư mục `scripts/`
+(chạy bằng PowerShell; đường dẫn tự suy từ vị trí repo nên không cần sửa gì):
+
+| Script | Chức năng |
+|---|---|
+| `scripts\backend-start.ps1` | Bật backend (`uvicorn --reload`, cửa sổ riêng — Ctrl+C để dừng) + tự bật Pix2Text kèm theo |
+| `scripts\backend-stop.ps1` | Tắt backend + Pix2Text |
+| `scripts\p2t-start.ps1` / `scripts\p2t-stop.ps1` | Bật/tắt riêng Pix2Text (lúc lạnh chờ vài phút tải model) |
+
+Không còn tác vụ Task Scheduler tự khởi động khi đăng nhập — dịch vụ chỉ chạy
+khi bạn gọi lệnh, và **tắt backend là Pix2Text tự tắt ngay** (watcher theo dõi
+tiến trình uvicorn, không poll). Ollama Desktop vẫn tự khởi động theo cài đặt
+riêng của nó. Khi backend chạy rồi, mở giao diện và bấm **"AI sẵn sàng"** →
+popover liệt kê 3 provider (Mock / Ollama Vision / Pix2Text), bấm
+**"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh ✓ là sẵn sàng dùng được.
 
 > **Nhận dạng thật có thể chậm:** model AI chạy local trên CPU mất **khoảng 10–60
 > giây** cho lần đầu (llava 7B). Hệ thống chờ tối đa **120 giây**; trong lúc chờ
@@ -245,6 +255,7 @@ tự chạy toàn bộ test ở trên. Push tag `v*` sẽ tự tạo GitHub Rele
 │       ├── stores/           # Zustand
 │       └── api/
 ├── examples/activities/  # File activity mẫu (JSON)
+├── scripts/                # Script khởi động/tắt backend + Pix2Text (PowerShell)
 └── .github/              # Issue templates, CI
 ```
 

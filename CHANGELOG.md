@@ -92,6 +92,15 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - Tài liệu mã nguồn mở: README, CHANGELOG, CONTRIBUTING, THIRD_PARTY_NOTICES,
   hướng dẫn cài đặt, issue templates (bug tracker GitHub Issues).
 
+### Thay đổi
+- **Bỏ 3 tác vụ Windows Task Scheduler tự khởi động** (`MathBackend`,
+  `P2TServe`, `P2TWatchdog` — trigger đăng nhập + watchdog poll mỗi 2 phút):
+  backend và Pix2Text giờ chỉ chạy khi người dùng gọi lệnh, qua các script mới
+  trong `scripts/` — `backend-start.ps1` (bật backend + Pix2Text; watcher ẩn
+  theo dõi tiến trình uvicorn và **tự tắt Pix2Text ngay khi backend dừng**,
+  không poll), `backend-stop.ps1`, `p2t-start.ps1`, `p2t-stop.ps1`. Đường dẫn
+  máy cá nhân được suy tương đối từ vị trí repo nên script dùng được trên máy khác.
+
 ### Đã sửa (Stage 1)
 - Hết lỗi treo "Đang phân tích...": nút xác nhận (RecognitionModal) và nút phân
   tích (MathInputBar) luôn thoát khỏi trạng thái busy dù thành công hay thất bại
