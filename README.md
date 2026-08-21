@@ -43,27 +43,24 @@ git clone https://github.com/Swon010191/Math_teacher.git
 cd Math_teacher
 ```
 
-### 2. Khởi động backend (Math Engine)
+### 2. Khởi động backend + Pix2Text (Windows, khuyến nghị)
 
-```bash
-cd backend
-python -m venv .venv
-
-# Windows
-.venv\Scripts\activate
-# Linux/macOS
-# source .venv/bin/activate
-
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 8000
+```powershell
+# Từ thư mục gốc dự án
+powershell -ExecutionPolicy Bypass -File scripts\backend-start.ps1
 ```
 
-> **Chọn provider nhận dạng (Pix2Text/Ollama/Mock) — 3 cách:**
-> 1. **File `.env` (mặc định lúc khởi động, nay đã hoạt động):** tạo `backend/.env` từ `backend/.env.example`, đặt `RECOGNITION_PROVIDER=pix2text` — file này **gitignored, chỉ trên máy bạn** (người khác clone về vẫn mặc định mock).
-> 2. **Biến môi trường tạm:** `$env:RECOGNITION_PROVIDER='pix2text'` rồi chạy uvicorn (chỉ phiên terminal đó).
-> 3. **Đổi lúc chạy trên UI:** bấm "AI sẵn sàng" → chọn provider — restart backend sẽ trở về giá trị trong `.env` hoặc biến môi trường.
->
-> `PIX2TEXT_URL` mặc định `http://localhost:8503` — không cần đặt nếu dùng port chuẩn.
+- Bật backend (`uvicorn --reload`, cửa sổ riêng) + tự bật Pix2Text kèm theo
+- Tắt: **Ctrl+C** ở cửa sổ backend → Pix2Text tự tắt ngay (watcher)
+- File `backend/.env` (gitignored) quyết định provider mặc định: `RECOGNITION_PROVIDER=pix2text|ollama_vision|mock`
+
+> **Nâng cao (Linux/macOS / thủ công):**
+> ```bash
+> cd backend && python -m venv .venv && source .venv/bin/activate
+> pip install -r requirements.txt
+> uvicorn app.main:app --reload --port 8000
+> # Pix2Text chạy riêng nếu cần: scripts\p2t-start.ps1
+> ```
 
 ### 3. Khởi động frontend (AI Whiteboard)
 
@@ -75,36 +72,7 @@ npm run dev
 
 Mở trình duyệt: **http://localhost:5173**
 
-### 4. Khởi động hằng ngày (Windows, khuyến nghị)
-
-Sau khi cài đặt xong **backend** (mục 2) — Pix2Text là tùy chọn (xem *Cài đặt AI nhận dạng & Copilot* bên dưới) — mỗi lần mở máy chỉ cần:
-
-```powershell
-# Từ thư mục gốc dự án
-powershell -ExecutionPolicy Bypass -File scripts\backend-start.ps1   # bật backend + Pix2Text
-cd frontend; npm run dev                                             # mở giao diện
-```
-
-| Script | Chức năng |
-|---|---|
-| `scripts\backend-start.ps1` | Bật backend (`uvicorn --reload`, cửa sổ riêng) + tự bật Pix2Text kèm theo (nếu có) |
-| `scripts\backend-stop.ps1` | Tắt backend + Pix2Text từ xa, không cần tìm cửa sổ |
-| `scripts\p2t-start.ps1` / `scripts\p2t-stop.ps1` | Bật/tắt riêng Pix2Text |
-
-| | Chạy tay (`uvicorn ...`) | Script `backend-start.ps1` |
-|---|---|---|
-| Backend | ✓ | ✓ |
-| Pix2Text tự bật | ✗ (phải chạy `p2t-start.ps1` riêng) | ✓ |
-| Tắt backend thì Pix2Text | ✗ vẫn chạy (phải `p2t-stop.ps1`) | ✓ tự tắt ngay (watcher) |
-| Dùng trên Linux/macOS | ✓ | ✗ (PowerShell only) |
-
-Cách hoạt động:
-- **Tắt backend là tắt hết:** đóng cửa sổ uvicorn (hoặc Ctrl+C), hoặc chạy `backend-stop.ps1` — Pix2Text tự tắt ngay theo nhờ watcher ẩn theo dõi tiến trình (không poll định kỳ).
-- **Không có gì tự chạy ngầm:** không còn tác vụ Task Scheduler khởi động khi đăng nhập — dịch vụ chỉ chạy khi bạn gọi lệnh. (Ollama Desktop vẫn tự khởi động theo cài đặt riêng của nó.)
-- **Lúc lạnh Pix2Text cần vài phút tải model**; backend dùng được ngay trong lúc đó, OCR chỉ sẵn sàng sau khi port 8503 lên.
-- Script tự suy đường dẫn từ vị trí repo (chỉ **bắt buộc** `backend\.venv`; thiếu `ai-tools\pix2text\.venv` script vẫn chạy — chỉ bỏ qua Pix2Text với cảnh báo).
-
-## Cài đặt AI nhận dạng & Copilot (tùy chọn)
+### 4. Cài đặt AI nhận dạng & Copilot (tùy chọn)
 
 Mặc định dùng Mock Provider (không cần cài gì). Muốn nhận dạng thật (Pix2Text/Ollama Vision) hoặc Copilot AI, cài các dịch vụ dưới đây rồi cấu hình qua `backend/.env` (xem `backend/.env.example`) hoặc đổi lúc chạy trên UI.
 
