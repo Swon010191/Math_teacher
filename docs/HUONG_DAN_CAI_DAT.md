@@ -40,6 +40,11 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
+> Trên Windows, sau khi cài đặt xong (kể cả Pix2Text ở phần AI bên dưới) có thể
+> dùng script tiện lợi `scripts\backend-start.ps1` — bật backend + Pix2Text
+> trong 1 lệnh, tắt backend là Pix2Text tự tắt theo. Xem README mục
+> **Khởi động hằng ngày**.
+
 Kiểm tra:
 
 - OpenAPI docs: http://localhost:8000/docs

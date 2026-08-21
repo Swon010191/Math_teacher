@@ -68,6 +68,37 @@ npm run dev
 
 Mở trình duyệt: **http://localhost:5173**
 
+### 4. Khởi động hằng ngày (Windows, khuyến nghị)
+
+Sau khi cài đặt xong backend và Pix2Text (xem phần *Hướng dẫn cài đặt chi tiết*
+bên dưới), mỗi lần mở máy chỉ cần:
+
+```powershell
+# Từ thư mục gốc dự án
+powershell -ExecutionPolicy Bypass -File scripts\backend-start.ps1   # bật backend + Pix2Text
+cd frontend; npm run dev                                             # mở giao diện
+```
+
+| Script | Chức năng |
+|---|---|
+| `scripts\backend-start.ps1` | Bật backend (`uvicorn --reload`, cửa sổ riêng) + tự bật Pix2Text kèm theo |
+| `scripts\backend-stop.ps1` | Tắt backend + Pix2Text từ xa, không cần tìm cửa sổ |
+| `scripts\p2t-start.ps1` / `scripts\p2t-stop.ps1` | Bật/tắt riêng Pix2Text |
+
+Cách hoạt động:
+
+- **Tắt backend là tắt hết:** đóng cửa sổ uvicorn (hoặc Ctrl+C), hoặc chạy
+  `backend-stop.ps1` — Pix2Text tự tắt ngay theo nhờ watcher ẩn theo dõi tiến
+  trình (không poll định kỳ).
+- **Không có gì tự chạy ngầm:** không còn tác vụ Task Scheduler khởi động khi
+  đăng nhập — dịch vụ chỉ chạy khi bạn gọi lệnh. (Ollama Desktop vẫn tự khởi
+  động theo cài đặt riêng của nó.)
+- **Lúc lạnh Pix2Text cần vài phút tải model**; backend dùng được ngay trong
+  lúc đó, OCR chỉ sẵn sàng sau khi port 8503 lên.
+- Script tự suy đường dẫn từ vị trí repo (yêu cầu đã có `backend\.venv` và
+  `ai-tools\pix2text\.venv` như hướng dẫn bên dưới), nên không cần sửa gì khi
+  clone sang thư mục khác.
+
 ## Hướng dẫn sử dụng
 
 ### Màn hình chính
@@ -137,21 +168,13 @@ py -3.14 -m venv .venv
 .venv\Scripts\p2t.exe serve --port 8503       # chạy server tại http://localhost:8503
 ```
 
-**3. Khởi động lại sau khi tắt máy:** dùng các script trong thư mục `scripts/`
-(chạy bằng PowerShell; đường dẫn tự suy từ vị trí repo nên không cần sửa gì):
-
-| Script | Chức năng |
-|---|---|
-| `scripts\backend-start.ps1` | Bật backend (`uvicorn --reload`, cửa sổ riêng — Ctrl+C để dừng) + tự bật Pix2Text kèm theo |
-| `scripts\backend-stop.ps1` | Tắt backend + Pix2Text |
-| `scripts\p2t-start.ps1` / `scripts\p2t-stop.ps1` | Bật/tắt riêng Pix2Text (lúc lạnh chờ vài phút tải model) |
-
-Không còn tác vụ Task Scheduler tự khởi động khi đăng nhập — dịch vụ chỉ chạy
-khi bạn gọi lệnh, và **tắt backend là Pix2Text tự tắt ngay** (watcher theo dõi
-tiến trình uvicorn, không poll). Ollama Desktop vẫn tự khởi động theo cài đặt
-riêng của nó. Khi backend chạy rồi, mở giao diện và bấm **"AI sẵn sàng"** →
-popover liệt kê 3 provider (Mock / Ollama Vision / Pix2Text), bấm
-**"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh ✓ là sẵn sàng dùng được.
+**3. Khởi động lại sau khi tắt máy:** chạy `scripts\backend-start.ps1` — chi
+tiết xem mục **Khởi động hằng ngày** ở trên. Không còn tác vụ Task Scheduler
+tự khởi động khi đăng nhập: dịch vụ chỉ chạy khi bạn gọi lệnh, và tắt backend
+là Pix2Text tự tắt ngay. Khi backend chạy rồi, mở giao diện và bấm
+**"AI sẵn sàng"** → popover liệt kê 3 provider (Mock / Ollama Vision /
+Pix2Text), bấm **"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh ✓ là
+sẵn sàng dùng được.
 
 > **Nhận dạng thật có thể chậm:** model AI chạy local trên CPU mất **khoảng 10–60
 > giây** cho lần đầu (llava 7B). Hệ thống chờ tối đa **120 giây**; trong lúc chờ
