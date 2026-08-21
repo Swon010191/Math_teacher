@@ -58,6 +58,13 @@ pip install -r requirements.txt
 uvicorn app.main:app --reload --port 8000
 ```
 
+> **Chọn provider nhận dạng (Pix2Text/Ollama/Mock) — 3 cách:**
+> 1. **File `.env` (mặc định lúc khởi động, nay đã hoạt động):** tạo `backend/.env` từ `backend/.env.example`, đặt `RECOGNITION_PROVIDER=pix2text` — file này **gitignored, chỉ trên máy bạn** (người khác clone về vẫn mặc định mock).
+> 2. **Biến môi trường tạm:** `$env:RECOGNITION_PROVIDER='pix2text'` rồi chạy uvicorn (chỉ phiên terminal đó).
+> 3. **Đổi lúc chạy trên UI:** bấm "AI sẵn sàng" → chọn provider — restart backend sẽ trở về giá trị trong `.env` hoặc biến môi trường.
+>
+> `PIX2TEXT_URL` mặc định `http://localhost:8503` — không cần đặt nếu dùng port chuẩn.
+
 ### 3. Khởi động frontend (AI Whiteboard)
 
 ```bash
@@ -70,8 +77,7 @@ Mở trình duyệt: **http://localhost:5173**
 
 ### 4. Khởi động hằng ngày (Windows, khuyến nghị)
 
-Sau khi cài đặt xong backend và Pix2Text (xem phần *Hướng dẫn cài đặt chi tiết*
-bên dưới), mỗi lần mở máy chỉ cần:
+Sau khi cài đặt xong **backend** (mục 2) — Pix2Text là tùy chọn (xem *Cài đặt AI nhận dạng & Copilot* bên dưới) — mỗi lần mở máy chỉ cần:
 
 ```powershell
 # Từ thư mục gốc dự án
@@ -81,23 +87,61 @@ cd frontend; npm run dev                                             # mở giao
 
 | Script | Chức năng |
 |---|---|
-| `scripts\backend-start.ps1` | Bật backend (`uvicorn --reload`, cửa sổ riêng) + tự bật Pix2Text kèm theo |
+| `scripts\backend-start.ps1` | Bật backend (`uvicorn --reload`, cửa sổ riêng) + tự bật Pix2Text kèm theo (nếu có) |
 | `scripts\backend-stop.ps1` | Tắt backend + Pix2Text từ xa, không cần tìm cửa sổ |
 | `scripts\p2t-start.ps1` / `scripts\p2t-stop.ps1` | Bật/tắt riêng Pix2Text |
 
-Cách hoạt động:
+| | Chạy tay (`uvicorn ...`) | Script `backend-start.ps1` |
+|---|---|---|
+| Backend | ✓ | ✓ |
+| Pix2Text tự bật | ✗ (phải chạy `p2t-start.ps1` riêng) | ✓ |
+| Tắt backend thì Pix2Text | ✗ vẫn chạy (phải `p2t-stop.ps1`) | ✓ tự tắt ngay (watcher) |
+| Dùng trên Linux/macOS | ✓ | ✗ (PowerShell only) |
 
-- **Tắt backend là tắt hết:** đóng cửa sổ uvicorn (hoặc Ctrl+C), hoặc chạy
-  `backend-stop.ps1` — Pix2Text tự tắt ngay theo nhờ watcher ẩn theo dõi tiến
-  trình (không poll định kỳ).
-- **Không có gì tự chạy ngầm:** không còn tác vụ Task Scheduler khởi động khi
-  đăng nhập — dịch vụ chỉ chạy khi bạn gọi lệnh. (Ollama Desktop vẫn tự khởi
-  động theo cài đặt riêng của nó.)
-- **Lúc lạnh Pix2Text cần vài phút tải model**; backend dùng được ngay trong
-  lúc đó, OCR chỉ sẵn sàng sau khi port 8503 lên.
-- Script tự suy đường dẫn từ vị trí repo (yêu cầu đã có `backend\.venv` và
-  `ai-tools\pix2text\.venv` như hướng dẫn bên dưới), nên không cần sửa gì khi
-  clone sang thư mục khác.
+Cách hoạt động:
+- **Tắt backend là tắt hết:** đóng cửa sổ uvicorn (hoặc Ctrl+C), hoặc chạy `backend-stop.ps1` — Pix2Text tự tắt ngay theo nhờ watcher ẩn theo dõi tiến trình (không poll định kỳ).
+- **Không có gì tự chạy ngầm:** không còn tác vụ Task Scheduler khởi động khi đăng nhập — dịch vụ chỉ chạy khi bạn gọi lệnh. (Ollama Desktop vẫn tự khởi động theo cài đặt riêng của nó.)
+- **Lúc lạnh Pix2Text cần vài phút tải model**; backend dùng được ngay trong lúc đó, OCR chỉ sẵn sàng sau khi port 8503 lên.
+- Script tự suy đường dẫn từ vị trí repo (chỉ **bắt buộc** `backend\.venv`; thiếu `ai-tools\pix2text\.venv` script vẫn chạy — chỉ bỏ qua Pix2Text với cảnh báo).
+
+## Cài đặt AI nhận dạng & Copilot (tùy chọn)
+
+Mặc định dùng Mock Provider (không cần cài gì). Muốn nhận dạng thật (Pix2Text/Ollama Vision) hoặc Copilot AI, cài các dịch vụ dưới đây rồi cấu hình qua `backend/.env` (xem `backend/.env.example`) hoặc đổi lúc chạy trên UI.
+
+| Provider | Cài đặt | Cấu hình |
+|---|---|---|
+| `ollama_vision` | Cài [Ollama](https://ollama.com) rồi `ollama pull llava` (hoặc Qwen-VL); đảm bảo `ollama serve` đang chạy | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
+| `pix2text` | `pip install pix2text[serve]` rồi chạy `p2t serve` (hoặc `scripts\p2t-start.ps1`) | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
+
+#### Hướng dẫn cài đặt chi tiết (khuyến nghị, dựa trên máy Windows)
+
+> Cả hai dịch vụ được cài **trong thư mục `ai-tools/` của dự án** — dành riêng cho máy cá nhân, **không được đẩy lên git** (đã nằm ngoài vùng theo dõi). Khi tải mã nguồn mới về, bạn phải cài lại các bước dưới đây.
+
+**1. Ollama Vision** (nhận dạng bằng LLM thị giác `llava`)
+
+```powershell
+# Tải bản portable: https://ollama.com/download/windows → giải nén vào ai-tools\ollama
+# Đặt biến môi trường OLLAMA_MODELS trỏ tới thư mục chứa model (máy này dùng D:\Misc\Tools\AI_Models)
+ollama pull llava       # model thị giác (≈ 4.7 GB)
+ollama pull llama3.2    # model chat cho Teacher Copilot (≈ 2.0 GB)
+ollama serve            # chạy server tại http://localhost:11434
+```
+
+> Lưu ý: `ollama pull` là lệnh *client* — model được lưu vào thư mục của **server** đang chạy (theo biến `OLLAMA_MODELS` của server), không phải nơi bạn gõ lệnh. Đảm bảo `OLLAMA_MODELS` trỏ đúng thư mục chứa model trước khi pull/serve.
+
+**2. Pix2Text** (nhận dạng công thức chuyên dụng)
+
+```powershell
+cd ai-tools\pix2text
+py -3.14 -m venv .venv
+.venv\Scripts\python -m pip install -U pip pix2text[serve]   # tự tải các model MFD/MFR về
+# Đặt biến môi trường (máy này đã đặt): PIX2TEXT_HOME=<project>\ai-tools\pix2text\.pix2text
+.venv\Scripts\p2t.exe serve --port 8503       # chạy server tại http://localhost:8503
+```
+
+**Teacher Copilot:** mặc định dùng `rule_based` (nội dung sinh theo quy tắc, không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `ollama pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn `OLLAMA_MODEL_COPILOT`) trong `backend/.env`.
+
+> **Nhận dạng thật có thể chậm:** model AI chạy local trên CPU mất **khoảng 10–60 giây** cho lần đầu (llava 7B). Hệ thống chờ tối đa **120 giây**; trong lúc chờ giao diện hiển thị trạng thái đang xử lý, không bị cắt giữa chừng như trước.
 
 ## Hướng dẫn sử dụng
 
@@ -128,70 +172,8 @@ Thanh công cụ gồm 3 nhóm:
 > đặt nếu chưa có) và nút **"Kiểm tra lại"** để ping lại các dịch vụ. Khi đèn đỏ,
 > hãy khởi động backend bằng `scripts\backend-start.ps1` (hoặc thủ công:
 > `uvicorn app.main:app --port 8000` trong thư mục `backend/`).
-
-**Recognition thật (tùy chọn):** mặc định dùng Mock (demo không cần cài gì).
-Muốn nhận dạng thật, cài Ollama hoặc Pix2Text rồi đặt biến môi trường trong
-`backend/.env` (xem `backend/.env.example`):
-
-| Provider | Cài đặt | Cấu hình |
-|---|---|---|
-| `ollama_vision` | Cài [Ollama](https://ollama.com) rồi `ollama pull llava` (hoặc Qwen-VL); đảm bảo `ollama serve` đang chạy | `RECOGNITION_PROVIDER=ollama_vision`, `OLLAMA_URL`, `OLLAMA_MODEL` |
-| `pix2text` | `pip install pix2text[serve]` rồi chạy `p2t serve` | `RECOGNITION_PROVIDER=pix2text`, `PIX2TEXT_URL` |
-
-#### Hướng dẫn cài đặt chi tiết (khuyến nghị, dựa trên máy Windows)
-
-> Cả hai dịch vụ được cài **trong thư mục `ai-tools/` của dự án** — dành riêng cho
-> máy cá nhân, **không được đẩy lên git** (đã nằm ngoài vùng theo dõi). Khi tải mã
-> nguồn mới về, bạn phải cài lại các bước dưới đây.
-
-**1. Ollama Vision** (nhận dạng bằng LLM thị giác `llava`)
-
-```powershell
-# Tải bản portable: https://ollama.com/download/windows → giải nén vào ai-tools\ollama
-# Đặt biến môi trường OLLAMA_MODELS trỏ tới thư mục chứa model (máy này dùng D:\Misc\Tools\AI_Models)
-ollama pull llava       # model thị giác (≈ 4.7 GB)
-ollama pull llama3.2    # model chat cho Teacher Copilot (≈ 2.0 GB)
-ollama serve            # chạy server tại http://localhost:11434
-```
-
-> Lưu ý: `ollama pull` là lệnh *client* — model được lưu vào thư mục của **server**
-> đang chạy (theo biến `OLLAMA_MODELS` của server), không phải nơi bạn gõ lệnh.
-> Đảm bảo `OLLAMA_MODELS` trỏ đúng thư mục chứa model trước khi pull/serve.
-
-**2. Pix2Text** (nhận dạng công thức chuyên dụng)
-
-```powershell
-cd ai-tools\pix2text
-py -3.14 -m venv .venv
-.venv\Scripts\python -m pip install -U pip pix2text[serve]   # tự tải các model MFD/MFR về
-# Đặt biến môi trường (máy này đã đặt): PIX2TEXT_HOME=<project>\ai-tools\pix2text\.pix2text
-.venv\Scripts\p2t.exe serve --port 8503       # chạy server tại http://localhost:8503
-```
-
-**3. Khởi động lại sau khi tắt máy:** chạy `scripts\backend-start.ps1` — chi
-tiết xem mục **Khởi động hằng ngày** ở trên. Không còn tác vụ Task Scheduler
-tự khởi động khi đăng nhập: dịch vụ chỉ chạy khi bạn gọi lệnh, và tắt backend
-là Pix2Text tự tắt ngay. Khi backend chạy rồi, mở giao diện và bấm
-**"AI sẵn sàng"** → popover liệt kê 3 provider (Mock / Ollama Vision /
-Pix2Text), bấm **"Kiểm tra lại"** để ping lại dịch vụ; provider nào xanh ✓ là
-sẵn sàng dùng được.
-
-> **Nhận dạng thật có thể chậm:** model AI chạy local trên CPU mất **khoảng 10–60
-> giây** cho lần đầu (llava 7B). Hệ thống chờ tối đa **120 giây**; trong lúc chờ
-> giao diện hiển thị trạng thái đang xử lý, không bị cắt giữa chừng như trước.
-
-**Teacher Copilot:** mặc định dùng `rule_based` (nội dung sinh theo quy tắc,
-không cần AI). Muốn dùng LLM local, cài [Ollama](https://ollama.com) + `ollama
-pull llama3.2`, rồi đặt `COPILOT_PROVIDER=ollama` (tùy chọn
-`OLLAMA_MODEL_COPILOT`) trong `backend/.env`.
-
-> **Trình tự gợi ý giảng dạy:** mở activity → bấm **💡 Gợi ý** → chọn **Nguồn
-> gợi ý** (Gợi ý có sẵn / Ollama AI local) nếu muốn đổi → xem đề xuất (chỉ là
-> gợi ý, số liệu đến từ Math Engine) → bấm **Đưa lên bảng** để duyệt; gợi ý
-> xuất hiện ngay trong activity và được lưu cùng bảng.
-
-> **Chọn / Xóa theo khoanh vùng:** không cần bấm trúng đối tượng — chỉ cần kéo
-> một khung bao quanh vùng muốn chọn hoặc muốn xóa. Kết quả hiển thị ngay.
+>
+> *(Cài đặt Pix2Text/Ollama/Copilot xem mục **Cài đặt AI nhận dạng & Copilot (tùy chọn)** ở trên.)*
 
 ### Luồng chính 1 — Viết tay → Nhận dạng → Activity (được khuyến nghị)
 

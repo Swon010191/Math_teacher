@@ -101,6 +101,9 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
   không poll), `backend-stop.ps1`, `p2t-start.ps1`, `p2t-stop.ps1`. Đường dẫn
   máy cá nhân được suy tương đối từ vị trí repo nên script dùng được trên máy khác.
 
+### Đã sửa
+- **File `.env` giờ được đọc thật**: thêm `python-dotenv` + `load_dotenv()` trong `main.py` (trước import app.\*) → `backend/.env` (gitignored, cục bộ mỗi máy) xác định `RECOGNITION_PROVIDER` mặc định lúc khởi động; test dùng `conftest.py` đặt mock để CI ổn định.
+
 ### Đã sửa (Stage 1)
 - Hết lỗi treo "Đang phân tích...": nút xác nhận (RecognitionModal) và nút phân
   tích (MathInputBar) luôn thoát khỏi trạng thái busy dù thành công hay thất bại
