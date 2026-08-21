@@ -11,7 +11,7 @@ load_dotenv(Path(__file__).resolve().parents[1] / ".env", override=False)
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api import copilot, math, recognize
+from app.api import copilot, knowledge, math, recognize
 from app.services.copilot_settings import get_active_copilot_provider
 from app.services.recognition_settings import get_active_provider
 
@@ -38,6 +38,7 @@ app.add_middleware(
 app.include_router(math.router)
 app.include_router(recognize.router)
 app.include_router(copilot.router)
+app.include_router(knowledge.router)
 
 
 @app.get("/health", tags=["system"])
