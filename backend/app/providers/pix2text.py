@@ -37,7 +37,16 @@ class Pix2TextProvider(RecognitionProvider):
         http_client: httpx.Client | None = None,
     ) -> None:
         self._url = (url or os.environ.get("PIX2TEXT_URL", "http://localhost:8503")).rstrip("/")
+        self._owns_client = http_client is None
         self._client = http_client or httpx.Client(timeout=timeout_seconds)
+
+    def close(self) -> None:
+        """Đóng HTTP client do provider tự tạo (tránh rò socket)."""
+        if self._owns_client:
+            try:
+                self._client.close()
+            except Exception:
+                pass
 
     def recognize(
         self,
@@ -60,16 +69,24 @@ class Pix2TextProvider(RecognitionProvider):
         except httpx.HTTPError as exc:
             raise RuntimeError(
                 f"Không kết nối được Pix2Text ({self._url}). "
-                "Kiểm tra: p2t serve đang chạy. Chi tiết: {exc}"
+                f"Kiểm tra: p2t serve đang chạy. Chi tiết: {exc}"
             ) from exc
+        except ValueError as exc:
+            raise RuntimeError(f"Pix2Text trả về JSON không hợp lệ: {exc}") from exc
 
-        results = payload.get("results") or []
+        try:
+            results = payload.get("results") or []
+        except AttributeError as exc:
+            raise RuntimeError("Pix2Text trả về dữ liệu không đúng định dạng.") from exc
         if isinstance(results, str):
             raw_text = results.strip()
         else:
-            if not results:
+            if not isinstance(results, list) or not results:
                 raise RuntimeError("Pix2Text không nhận dạng được nội dung nào trong vùng.")
-            raw_text = str(results[0].get("text", "")).strip()
+            first = results[0]
+            if not isinstance(first, dict):
+                raise RuntimeError("Pix2Text trả về dữ liệu không đúng định dạng.")
+            raw_text = str(first.get("text", "")).strip()
         if not raw_text:
             raise RuntimeError("Pix2Text trả về công thức rỗng.")
         latex = raw_text

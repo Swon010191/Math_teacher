@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -15,6 +17,11 @@ from app.services.recognition_settings import (
 )
 
 router = APIRouter(prefix="/api/recognize", tags=["recognition"])
+
+
+def _redact_urls(exc: Exception) -> str:
+    """Ẩn URL/host nội bộ trong thông báo lỗi trả về client."""
+    return re.sub(r"https?://[^\s),;]+", "<dịch vụ AI>", str(exc))
 
 
 class ProviderState(BaseModel):
@@ -41,7 +48,9 @@ def recognize_expression(request: RecognizeRequest) -> RecognizeResult:
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - lỗi provider
-        raise HTTPException(status_code=500, detail=f"Lỗi nhận dạng: {exc}") from exc
+        raise HTTPException(
+            status_code=500, detail=f"Lỗi nhận dạng: {_redact_urls(exc)}"
+        ) from exc
 
 
 @router.get("/provider", response_model=ProviderState)

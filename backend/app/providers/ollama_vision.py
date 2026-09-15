@@ -49,7 +49,16 @@ class OllamaVisionProvider(RecognitionProvider):
     ) -> None:
         self._url = (url or os.environ.get("OLLAMA_URL", "http://localhost:11434")).rstrip("/")
         self._model = model or os.environ.get("OLLAMA_MODEL", "llava")
+        self._owns_client = http_client is None
         self._client = http_client or httpx.Client(timeout=timeout_seconds)
+
+    def close(self) -> None:
+        """Đóng HTTP client do provider tự tạo (tránh rò socket)."""
+        if self._owns_client:
+            try:
+                self._client.close()
+            except Exception:
+                pass
 
     def recognize(
         self,
@@ -76,6 +85,10 @@ class OllamaVisionProvider(RecognitionProvider):
                 f"Kiểm tra: ollama serve đang chạy và đã cài model. Chi tiết: {exc}"
             ) from exc
 
+        if not isinstance(payload, dict):
+            raise RuntimeError(
+                f"Ollama trả về dữ liệu không đúng định dạng (model {self._model})."
+            )
         raw = payload.get("response", "")
         try:
             data = json.loads(raw)
@@ -83,10 +96,19 @@ class OllamaVisionProvider(RecognitionProvider):
             raise RuntimeError(
                 f"Ollama không trả về JSON hợp lệ (model {self._model}): {raw[:300]!r}"
             ) from exc
+        if not isinstance(data, dict):
+            raise RuntimeError(
+                f"Ollama không trả về JSON hợp lệ (model {self._model}): {raw[:300]!r}"
+            )
 
         latex = str(data.get("latex", "")).strip()
         expression = to_problem_expression(str(data.get("expression", latex)))
-        confidence = float(data.get("confidence", 0.7))
+        try:
+            confidence = float(data.get("confidence", 0.7))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"Ollama trả về confidence không hợp lệ (model {self._model})."
+            ) from exc
         if not latex or not expression:
             raise RuntimeError(f"Ollama trả về công thức rỗng (model {self._model}).")
         return RecognizeResult(

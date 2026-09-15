@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -46,7 +48,8 @@ def suggest_content(request: CopilotRequest) -> CopilotSuggestion:
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - lỗi provider
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        detail = re.sub(r"https?://[^\s),;]+", "<dịch vụ AI>", str(exc))
+        raise HTTPException(status_code=500, detail=detail) from exc
 
 
 @router.get("/provider", response_model=CopilotProviderState)

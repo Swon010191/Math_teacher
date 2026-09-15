@@ -103,21 +103,39 @@ def check_provider_availability(
             available=True,
             detail="Giả lập, không cần kết nối",
         )
+    owns_client = http_client is None
     client = http_client or httpx.Client(timeout=_DIAGNOSTIC_TIMEOUT)
-    if name == "ollama_vision":
-        return _check_ollama_vision(client)
-    if name == "pix2text":
-        return _check_pix2text(client)
-    return ProviderAvailability(
-        provider=name,
-        available=False,
-        detail=f"Provider không xác định: {name}",
-    )
+    try:
+        if name == "ollama_vision":
+            return _check_ollama_vision(client)
+        if name == "pix2text":
+            return _check_pix2text(client)
+        return ProviderAvailability(
+            provider=name,
+            available=False,
+            detail=f"Provider không xác định: {name}",
+        )
+    finally:
+        if owns_client:
+            try:
+                client.close()
+            except Exception:
+                pass
 
 
 def check_all(http_client: httpx.Client | None = None) -> list[ProviderAvailability]:
-    """Kiểm tra khả dụng của toàn bộ provider khả dụng (chạy song song)."""
-    client = http_client or httpx.Client(timeout=_DIAGNOSTIC_TIMEOUT)
+    """Kiểm tra khả dụng của toàn bộ provider khả dụng (chạy song song).
+
+    Mỗi provider dùng client riêng để tránh chia sẻ httpx.Client đồng bộ
+    qua nhiều thread (không đảm bảo thread-safe).
+    """
     with ThreadPoolExecutor(max_workers=len(AVAILABLE_PROVIDERS)) as pool:
-        results = list(pool.map(lambda name: check_provider_availability(name, client), AVAILABLE_PROVIDERS))
+        results = list(
+            pool.map(
+                lambda name: check_provider_availability(
+                    name, None if http_client is None else http_client
+                ),
+                AVAILABLE_PROVIDERS,
+            )
+        )
     return results

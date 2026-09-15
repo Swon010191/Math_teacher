@@ -20,7 +20,9 @@ def _build_provider() -> CopilotProvider:
     name = get_active_copilot_provider()
     if name == "ollama":
         return OllamaCopilotProvider()
-    return RuleBasedCopilotProvider()
+    if name == "rule_based":
+        return RuleBasedCopilotProvider()
+    raise ValueError(f"Provider không hợp lệ: {name!r}")
 
 
 def _present_fact(

@@ -504,3 +504,72 @@ class TestRecognitionDiagnostics:
         assert results[0].available is True
         assert results[1].available is False
         assert results[2].available is False
+
+
+class TestProviderCungCap:
+    """Hoi quy: provider chiu duoc payload la, confidence la, dong client sach."""
+
+    def test_pix2text_ket_qua_rong(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"results": []})
+
+        provider = Pix2TextProvider(
+            url="http://127.0.0.1:1",
+            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+        try:
+            with pytest.raises(RuntimeError, match="không nhận dạng được"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_pix2text_payload_sai_dinh_dang(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"results": ["khong-phai-dict"]})
+
+        provider = Pix2TextProvider(
+            url="http://127.0.0.1:1",
+            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+        try:
+            with pytest.raises(RuntimeError, match="không đúng định dạng"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_ollama_confidence_chu(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "response": json.dumps(
+                        {"latex": "x+1", "expression": "x+1", "confidence": "cao"}
+                    )
+                },
+            )
+
+        provider = OllamaVisionProvider(
+            http_client=httpx.Client(transport=httpx.MockTransport(handler))
+        )
+        try:
+            with pytest.raises(RuntimeError, match="confidence không hợp lệ"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_ollama_payload_khong_phai_dict(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"response": "[1, 2]"})
+
+        provider = OllamaVisionProvider(
+            http_client=httpx.Client(transport=httpx.MockTransport(handler))
+        )
+        try:
+            with pytest.raises(RuntimeError, match="JSON hợp lệ"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_close_khong_loi(self) -> None:
+        OllamaVisionProvider(url="http://127.0.0.1:1").close()
+        Pix2TextProvider(url="http://127.0.0.1:1").close()

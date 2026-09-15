@@ -27,6 +27,9 @@ def recognize(
 ) -> RecognizeResult:
     provider = _build_provider()
     try:
-        return provider.recognize(image_base64=image_base64, hint=hint)
-    except Exception as exc:  # noqa: BLE001 - báo rõ lỗi provider lên API
-        raise RuntimeError(f"Lỗi nhận dạng ({provider.name}): {exc}") from exc
+        try:
+            return provider.recognize(image_base64=image_base64, hint=hint)
+        except Exception as exc:  # noqa: BLE001 - báo rõ lỗi provider lên API
+            raise RuntimeError(f"Lỗi nhận dạng ({provider.name}): {exc}") from exc
+    finally:
+        provider.close()

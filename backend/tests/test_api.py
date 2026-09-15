@@ -674,3 +674,18 @@ class TestRecognize:
         assert 0.0 <= data["confidence"] <= 1.0
         assert data["expression"]
         assert "=" in data["expression"]
+
+    def test_loi_provider_khong_lo_url(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        monkeypatch.setenv("PIX2TEXT_URL", "http://127.0.0.1:1")
+        assert client.put("/api/recognize/provider", json={"provider": "pix2text"}).status_code == 200
+        try:
+            response = client.post(
+                "/api/recognize",
+                json={"image_base64": "aGVsbG8=", "hint": "x+1"},
+            )
+            assert response.status_code == 500
+            assert "127.0.0.1" not in response.json()["detail"]
+        finally:
+            client.put("/api/recognize/provider", json={"provider": "mock"})
