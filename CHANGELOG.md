@@ -8,6 +8,34 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 ## [Chưa phát hành]
 
 ### Đã thêm (Stage 1 - MVP)
+- **Kiến thức liên quan có trích nguồn**: API `POST /api/knowledge/related` suy
+  chủ đề từ Math Engine, chỉ gọi Wikipedia Việt/Anh và Wikibooks Anh qua
+  allowlist, luôn có nội dung Việt tích hợp, timeout/giới hạn dung lượng/cache
+  stale khi lỗi. Tab Kiến thức tự tải khi mở, cache IndexedDB, chuyển Tiếng
+  Việt/Nguyên bản và hiển thị link nguồn, contributors, revision, giấy phép,
+  trạng thái dịch cùng cảnh báo nội dung tham khảo.
+- **Lời giải phổ thông chi tiết**: phương trình bậc nhất/bậc hai có bước xác
+  định hệ số, biến đổi, biệt thức/công thức nghiệm và thế nghiệm; metadata bước
+  vẫn tương thích response cũ và được frontend trình bày thành từng thẻ rõ ràng.
+- **Nút AI cố định ở mép phải toolbar**: vùng công cụ có thể cuộn độc lập, nút
+  trạng thái nhỏ luôn thấy; chi tiết provider mặc định ẩn, desktop dùng popover
+  và mobile dùng panel sát đáy.
+- **Frontend Blueprint responsive**: activity dùng tab Đồ thị/Lời giải/Gợi ý
+  với một vùng cuộn duy nhất, hết đè nội dung; JSXGraph và Konva tự resize,
+  zoom card đồng nhất, có nút zoom/reset, activity mới đặt lệch nhau, mobile có
+  chế độ tập trung và nút thu nhỏ. Toolbar/board/modal được làm mới, hỗ trợ
+  pointer/touch, focus rõ và lỗi API hiển thị ngay trong modal.
+- **Nhận hàm viết đảo hai vế**: `2x+1=y` được chuẩn hóa thành `y=2x+1` ở cả
+  frontend và backend, tạo cùng đồ thị; các phương trình `x+y=2`, `2x+1=5`
+  vẫn đi đúng luồng giải.
+- **AI quét được cả Text trên bảng**: vùng nhận dạng rasterize Text và nét bút
+  theo đúng thứ tự, có nền trắng cho OCR; vùng rỗng báo rõ thay vì im lặng.
+- **Tên biến đa dạng**: Math Engine, activity và Copilot bảo toàn biến nguồn/
+  phụ thuộc như `z=2t+1`, `f(u)=u^2-1` thay vì bắt buộc `y=f(x)`.
+- **Giải phương trình bậc nhất/bậc hai**: API `POST /api/math/solve`, tự phân
+  loại sau OCR/nhập bàn phím, chọn ẩn cho `x+y=2`, trả nghiệm exact/gần đúng,
+  các trường hợp suy biến, bước giải LaTeX và trạng thái kiểm chứng. Activity
+  hàm bậc nhất/bậc hai có mục "Đáp án & lời giải"; phương trình có activity riêng.
 - **Chuyển LaTeX OCR thành biểu thức đọc được**: `to_expression` giờ xử lý
   đầy đủ cú pháp LaTeX mà Pix2Text/Ollama trả về — `\frac{n}{d}` (kể cả phân
   số lồng), `x^{2}`, `\sqrt{x}`, `\sqrt[3]{x}`, `2\cdot 3^x`, `\left(...\right)`,
@@ -105,6 +133,9 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 - **File `.env` giờ được đọc thật**: thêm `python-dotenv` + `load_dotenv()` trong `main.py` (trước import app.\*) → `backend/.env` (gitignored, cục bộ mỗi máy) xác định `RECOGNITION_PROVIDER` mặc định lúc khởi động; test dùng `conftest.py` đặt mock để CI ổn định.
 
 ### Đã sửa (Stage 1)
+- Sửa JSXGraph co khoảng 2px mỗi vòng rồi biến mất: `ResizeObserver` không còn
+  để JSXGraph ghi ngược width/height lên container `border-box`; thêm hồi quy
+  cho resize, StrictMode cleanup, chuyển tab và kích thước ổn định.
 - Hết lỗi treo "Đang phân tích...": nút xác nhận (RecognitionModal) và nút phân
   tích (MathInputBar) luôn thoát khỏi trạng thái busy dù thành công hay thất bại
   (try/finally), nút Hủy luôn bấm được, phím Escape đóng được modal.
