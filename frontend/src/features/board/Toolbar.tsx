@@ -103,14 +103,21 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
 
   const refreshStatus = async () => {
     if (!connected) return;
+    const providerVersion = providerChangeVersionRef.current;
     setCheckingStatus(true);
     try {
       const status = await getRecognitionProviderStatus();
-      setProviderStatus(status);
+      if (providerVersion === providerChangeVersionRef.current) {
+        setProviderStatus(status);
+      }
     } catch {
-      setProviderStatus([]);
+      if (providerVersion === providerChangeVersionRef.current) {
+        setProviderStatus([]);
+      }
     } finally {
-      setCheckingStatus(false);
+      if (providerVersion === providerChangeVersionRef.current) {
+        setCheckingStatus(false);
+      }
     }
   };
 

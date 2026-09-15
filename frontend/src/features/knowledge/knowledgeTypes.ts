@@ -57,7 +57,7 @@ function isCitation(value: unknown): value is KnowledgeCitation {
   return ['url', 'contributors_url', 'license_url'].every((key) => {
     try {
       const protocol = new URL(value[key] as string).protocol;
-      return protocol === 'https:';
+      return protocol === 'https:' || protocol === 'http:';
     } catch {
       return false;
     }

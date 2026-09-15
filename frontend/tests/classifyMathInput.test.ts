@@ -34,4 +34,13 @@ describe('classifyMathInput', () => {
       variables: ['t'],
     });
   });
+
+  it.each([
+    ['x==2', 'solve'],
+    ['x>=2', 'solve'],
+    ['x<=2', 'solve'],
+    ['x!=2', 'solve'],
+  ] as const)('toán tử so sánh %s luôn là phương trình', (input, intent) => {
+    expect(classifyMathInput(input).intent).toBe(intent);
+  });
 });

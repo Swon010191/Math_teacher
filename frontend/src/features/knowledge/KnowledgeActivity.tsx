@@ -42,8 +42,11 @@ export function KnowledgeActivity({
     setLoading(true);
     setError('');
 
+    const controller = new AbortController();
     const load = async () => {
-      const currentRequest = getRelatedKnowledge(expression, true, true);
+      // Hiển thị cache ngay (nếu có), đồng thời refresh từ mạng;
+      // bản mạng mới sẽ thay thế và được lưu lại (stale-while-revalidate).
+      const currentRequest = getRelatedKnowledge(expression, true, true, controller.signal);
       void currentRequest.catch(() => undefined);
       let cached: KnowledgeResponse | null = null;
       try {
@@ -75,7 +78,10 @@ export function KnowledgeActivity({
     };
 
     void load();
-    return () => { active = false; };
+    return () => {
+      active = false;
+      controller.abort();
+    };
   }, [activityType, expression]);
 
   return (

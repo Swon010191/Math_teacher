@@ -54,19 +54,29 @@ export function objectBounds(obj: BoardObject): Region {
     let y0 = Infinity;
     let x1 = -Infinity;
     let y1 = -Infinity;
-    for (let i = 0; i < obj.points.length; i += 2) {
+    for (let i = 0; i + 1 < obj.points.length; i += 2) {
       const px = obj.x + obj.points[i];
       const py = obj.y + obj.points[i + 1];
+      if (!Number.isFinite(px) || !Number.isFinite(py)) continue;
       x0 = Math.min(x0, px);
       y0 = Math.min(y0, py);
       x1 = Math.max(x1, px);
       y1 = Math.max(y1, py);
     }
+    if (!Number.isFinite(x0)) {
+      // Nét rỗng/dữ liệu bẩn (ví dụ import JSON lỗi): trả bbox suy biến
+      // tại gốc đối tượng để không tạo "ghost object" không bao giờ chọn được.
+      return { x0: obj.x, y0: obj.y, x1: obj.x, y1: obj.y };
+    }
     return { x0, y0, x1, y1 };
   }
   if (obj.type === 'text') {
-    const width = obj.fontSize * obj.text.length * 0.6;
-    return { x0: obj.x, y0: obj.y, x1: obj.x + width, y1: obj.y + obj.fontSize };
+    // Ước lượng theo dòng dài nhất (hỗ trợ \n) và cộng biên cho dấu tiếng Việt.
+    const lines = obj.text.split('\n');
+    const longest = lines.reduce((max, line) => Math.max(max, line.length), 0);
+    const width = obj.fontSize * longest * 0.6;
+    const height = obj.fontSize * Math.max(1, lines.length) * 1.2;
+    return { x0: obj.x, y0: obj.y, x1: obj.x + width, y1: obj.y + height };
   }
   return { x0: obj.x, y0: obj.y, x1: obj.x + obj.width, y1: obj.y + obj.height };
 }

@@ -31,6 +31,18 @@ export function extractVariables(expression: string): string[] {
 /** Classifies without evaluating input, so OCR and keyboard input behave identically. */
 export function classifyMathInput(input: string): MathInputClassification {
   const expression = input.trim();
+  // Toán tử so sánh (==, >=, <=, !=) luôn là phương trình cần giải,
+  // không phải định nghĩa hàm.
+  if (/(==|>=|<=|!=)/.test(expression)) {
+    return {
+      intent: 'solve',
+      variables: extractVariables(expression),
+      sourceVariable: null,
+      dependentVariable: null,
+      isBareExpression: false,
+      canonicalInput: expression,
+    };
+  }
   const equality = expression.match(/^(.*?)=(.*)$/);
   if (!equality || /[<>!]\s*$/.test(equality[1]) || /^\s*=/.test(equality[2])) {
     const variables = extractVariables(expression);

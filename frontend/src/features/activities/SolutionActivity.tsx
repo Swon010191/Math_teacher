@@ -75,7 +75,9 @@ export function SolutionActivity({
   embedded?: boolean;
 }) {
   const solution = activity.solution;
-  if (!solution) return null;
+  if (!solution) {
+    return <div className="activity-loading">Chưa có lời giải cho hoạt động này.</div>;
+  }
 
   const content = (
     <div className="solution-body">

@@ -6,7 +6,11 @@ import type { KnowledgeRequest, KnowledgeResponse } from '../features/knowledge/
 
 export type { ActivityModel, MathSolveResponse } from '../features/activities/activityTypes';
 
-const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? '';
+const RAW_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? '';
+// Chuẩn hóa base URL: bỏ khoảng trắng và dấu / cuối để tránh gọi nhầm
+// (ví dụ "http://localhost:8000/" + "/api/..." thành "//api/...").
+// Mặc định '' nghĩa là cùng gốc (bản đóng gói 1-port, không cần proxy Vite).
+const BASE_URL = RAW_BASE_URL.trim().replace(/\/+$/, '');
 
 async function request<T>(
   path: string,
@@ -14,14 +18,15 @@ async function request<T>(
   timeoutMs = 20_000,
 ): Promise<T> {
   let response: Response;
+  const { headers: initHeaders, signal: initSignal, ...restInit } = init ?? {};
   try {
     response = await fetch(`${BASE_URL}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
-      signal: AbortSignal.timeout(timeoutMs),
-      ...init,
+      ...restInit,
+      headers: { 'Content-Type': 'application/json', ...(initHeaders as Record<string, string> | undefined) },
+      signal: initSignal ?? AbortSignal.timeout(timeoutMs),
     });
   } catch (err) {
-    if (err instanceof DOMException && err.name === 'TimeoutError') {
+    if (err instanceof DOMException && (err.name === 'TimeoutError' || err.name === 'AbortError')) {
       throw new Error(
         'Xử lý AI quá lâu (quá thời gian chờ). Hãy thử lại hoặc kiểm tra tài nguyên máy.',
       );
@@ -53,9 +58,11 @@ export interface ProviderState {
   available: string[];
 }
 
-export async function checkHealth(): Promise<HealthInfo> {
+export async function checkHealth(timeoutMs = 5_000): Promise<HealthInfo> {
   try {
-    const response = await fetch(`${BASE_URL}/health`);
+    const response = await fetch(`${BASE_URL}/health`, {
+      signal: AbortSignal.timeout(timeoutMs),
+    });
     if (!response.ok) return { connected: false, provider: '' };
     const body = (await response.json()) as { recognition_provider?: string };
     return { connected: true, provider: body.recognition_provider ?? '' };
@@ -205,12 +212,14 @@ export async function createActivity(
 export async function recognizeRegion(
   imageBase64: string | null,
   hint?: string,
+  signal?: AbortSignal,
 ): Promise<RecognizeResult> {
   return request<RecognizeResult>(
     '/api/recognize',
     {
       method: 'POST',
       body: JSON.stringify({ image_base64: imageBase64, hint }),
+      ...(signal ? { signal } : {}),
     },
     120_000,
   );
@@ -219,6 +228,7 @@ export async function recognizeRegion(
 export async function suggestCopilot(
   activity: ActivityModel,
   gradeLevel = 'THCS',
+  signal?: AbortSignal,
 ): Promise<CopilotSuggestion> {
   return request<CopilotSuggestion>(
     '/api/copilot/suggest',
@@ -230,6 +240,7 @@ export async function suggestCopilot(
         math: activity.math,
         grade_level: gradeLevel,
       }),
+      ...(signal ? { signal } : {}),
     },
     120_000,
   );
@@ -267,6 +278,7 @@ export async function getRelatedKnowledge(
   expression: string,
   includeOriginal = true,
   includeVietnamese = true,
+  signal?: AbortSignal,
 ): Promise<KnowledgeResponse> {
   const body: KnowledgeRequest = {
     expression,
@@ -276,5 +288,6 @@ export async function getRelatedKnowledge(
   return request<KnowledgeResponse>('/api/knowledge/related', {
     method: 'POST',
     body: JSON.stringify(body),
+    ...(signal ? { signal } : {}),
   });
 }

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import type { BoardObject, ActivityObject, Viewport } from '../board/types';
 import { KnowledgeActivity } from '../knowledge/KnowledgeActivity';
@@ -44,6 +44,13 @@ export function ActivityFrame({
 }) {
   const [dragging, setDragging] = useState(false);
   const [resizing, setResizing] = useState(false);
+  const dragCleanup = useRef<(() => void) | null>(null);
+
+  // Dọn listener window nếu component unmount giữa chừng khi đang kéo.
+  useEffect(() => () => {
+    dragCleanup.current?.();
+    dragCleanup.current = null;
+  }, []);
   const Widget = activity ? activityWidgetFor(activity.type) : null;
   const knowledgeType = knowledgeTypeFor(activity);
   const tabs: ActivityTab[] = [];
@@ -81,10 +88,14 @@ export function ActivityFrame({
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      dragCleanup.current = null;
       setDragging(false);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    dragCleanup.current = up;
   };
 
   const onResizePointerDown = (event: React.PointerEvent) => {
@@ -101,10 +112,14 @@ export function ActivityFrame({
     const up = () => {
       window.removeEventListener('pointermove', move);
       window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', up);
+      dragCleanup.current = null;
       setResizing(false);
     };
     window.addEventListener('pointermove', move);
     window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', up);
+    dragCleanup.current = up;
   };
 
   const labels: Record<ActivityTab, string> = {
@@ -158,6 +173,9 @@ export function ActivityFrame({
       )}
       <div className="activity-content" role="tabpanel" tabIndex={0}>
         {!activity && <div className="activity-loading">Đang tải activity...</div>}
+        {activity && tabs.length === 0 && (
+          <div className="activity-loading">Loại activity này chưa được hỗ trợ hiển thị.</div>
+        )}
         {activity && visibleTab === 'graph' && Widget && <Widget activity={activity} />}
         {activity && visibleTab === 'solution' && <SolutionActivity activity={activity} embedded />}
         {activity && knowledgeType && visibleTab === 'knowledge' && (

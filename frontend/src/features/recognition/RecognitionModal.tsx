@@ -47,10 +47,13 @@ export function RecognitionModal({
   if (!open) return null;
 
   const previewHtml = (() => {
+    // Chuyển cú pháp Python (x**2) sang LaTeX (x^2) chỉ để xem trước;
+    // giá trị gửi backend vẫn giữ nguyên.
+    const previewSource = (value || '\\text{(trống)}').replace(/\*\*/g, '^');
     try {
-      return katex.renderToString(value || '\\text{(trống)}', { throwOnError: true });
+      return katex.renderToString(previewSource, { throwOnError: true });
     } catch {
-      return katex.renderToString('\\text{Không phân tích được biểu thức này}', { throwOnError: false });
+      return katex.renderToString('\\text{Không xem trước được biểu thức này}', { throwOnError: false });
     }
   })();
 

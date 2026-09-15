@@ -37,6 +37,7 @@ export function quadraticFeatures(p: QuadraticParams): QuadraticFeatures {
 }
 
 export function formatNum(n: number): string {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '?';
   if (Number.isInteger(n)) return String(n);
   return n.toFixed(2).replace(/\.?0+$/, '');
 }

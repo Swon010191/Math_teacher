@@ -17,7 +17,8 @@ import { RecognitionModal } from '../recognition/RecognitionModal';
 import { Toast } from '../../components/Toast';
 import { BoardStage } from './BoardStage';
 import { Toolbar } from './Toolbar';
-import type { ActivityObject, BoardObject } from './types';
+import { MAX_IMPORT_BYTES, sanitizeBoard } from './boardValidation';
+import type { ActivityObject } from './types';
 
 export function Whiteboard() {
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -42,6 +43,8 @@ export function Whiteboard() {
 
   const [mathInputOpen, setMathInputOpen] = useState(false);
   const [copilotFor, setCopilotFor] = useState<string | null>(null);
+  const [textInputAt, setTextInputAt] = useState<{ x: number; y: number } | null>(null);
+  const [textDraft, setTextDraft] = useState('');
 
   useEffect(() => {
     if (!toast) return;
@@ -155,20 +158,27 @@ export function Whiteboard() {
 
   const handleAddText = useCallback(
     (x: number, y: number) => {
-      const text = window.prompt('Nhập nội dung text:');
-      if (!text || !text.trim()) return;
-      addObject({
-        id: makeId(),
-        type: 'text',
-        text: text.trim(),
-        x,
-        y,
-        fontSize: 24,
-        color: '#1a1a2e',
-      });
+      setTextDraft('');
+      setTextInputAt({ x, y });
     },
-    [addObject],
+    [],
   );
+
+  const handleConfirmText = useCallback(() => {
+    if (!textInputAt) return;
+    const text = textDraft.trim().slice(0, 200);
+    setTextInputAt(null);
+    if (!text) return;
+    addObject({
+      id: makeId(),
+      type: 'text',
+      text,
+      x: textInputAt.x,
+      y: textInputAt.y,
+      fontSize: 24,
+      color: '#1a1a2e',
+    });
+  }, [textInputAt, textDraft, addObject]);
 
   const handleSave = useCallback(async () => {
     try {
@@ -180,12 +190,23 @@ export function Whiteboard() {
   }, [objects, activities, showToast]);
 
   const handleOpen = useCallback(async () => {
-    const board = await loadBoard();
+    let board: { objects: unknown; activities: unknown } | null = null;
+    try {
+      board = await loadBoard();
+    } catch {
+      showToast('Dữ liệu đã lưu bị hỏng, không mở được');
+      return;
+    }
     if (!board) {
       showToast('Chưa có bảng đã lưu');
       return;
     }
-    restoreBoard(board.objects, board.activities);
+    const clean = sanitizeBoard(board.objects, board.activities);
+    if (!clean) {
+      showToast('Dữ liệu đã lưu bị hỏng, không mở được');
+      return;
+    }
+    restoreBoard(clean.objects, clean.activities);
     showToast('Đã mở bảng đã lưu');
   }, [restoreBoard, showToast]);
 
@@ -196,7 +217,9 @@ export function Whiteboard() {
     const a = document.createElement('a');
     a.href = url;
     a.download = `ai-teaching-board-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
     a.click();
+    a.remove();
     URL.revokeObjectURL(url);
     showToast('Đã xuất file JSON');
   }, [objects, activities, showToast]);
@@ -207,18 +230,29 @@ export function Whiteboard() {
     input.accept = 'application/json';
     input.onchange = async () => {
       const file = input.files?.[0];
+      input.value = '';
+      input.remove();
       if (!file) return;
       try {
+        if (file.size > MAX_IMPORT_BYTES) {
+          showToast('File quá lớn (tối đa 5MB)');
+          return;
+        }
         const text = await file.text();
-        const parsed = JSON.parse(text) as { objects?: BoardObject[]; activities?: Record<string, unknown> };
-        restoreBoard(parsed.objects ?? [], parsed.activities ?? {});
+        const parsed = JSON.parse(text) as { objects?: unknown; activities?: unknown };
+        const clean = sanitizeBoard(parsed.objects, parsed.activities);
+        if (!clean) {
+          showToast('File không đúng định dạng bảng giảng dạy');
+          return;
+        }
+        restoreBoard(clean.objects, clean.activities);
         showToast('Đã nhập bảng từ JSON');
       } catch (error) {
         showToast(`File không hợp lệ: ${(error as Error).message}`);
       }
     };
     input.click();
-  }, [loadBoard, showToast]);
+  }, [restoreBoard, showToast]);
 
   const handleClear = useCallback(() => {
     if (!window.confirm('Xóa toàn bộ nội dung bảng?')) return;
@@ -297,6 +331,46 @@ export function Whiteboard() {
             onCancel={() => setMathInputOpen(false)}
             onSubmit={handleTypedInput}
           />
+        )}
+        {textInputAt && (
+          <div
+            className="modal-backdrop"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Thêm văn bản"
+            onKeyDown={(event) => {
+              if (event.key === 'Escape') setTextInputAt(null);
+            }}
+          >
+            <div className="modal">
+              <h3>Thêm văn bản</h3>
+              <label className="modal-label" htmlFor="board-text-input">
+                Nội dung (tối đa 200 ký tự):
+              </label>
+              <input
+                id="board-text-input"
+                className="modal-input"
+                value={textDraft}
+                maxLength={200}
+                onChange={(e) => setTextDraft(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') handleConfirmText(); }}
+                placeholder="Nhập nội dung text..."
+                autoFocus
+              />
+              <div className="modal-actions">
+                <button className="btn btn-secondary" onClick={() => setTextInputAt(null)}>
+                  Hủy
+                </button>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleConfirmText}
+                  disabled={!textDraft.trim()}
+                >
+                  Thêm
+                </button>
+              </div>
+            </div>
+          </div>
         )}
       </div>
       <RecognitionModal

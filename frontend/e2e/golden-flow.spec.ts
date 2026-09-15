@@ -342,13 +342,13 @@ test('công cụ Text -> AI khoanh Text-only gửi nhận dạng và mở modal'
   const box = await board.boundingBox();
   if (!box) throw new Error('Không tìm thấy vùng bảng');
 
-  page.once('dialog', async (prompt) => {
-    expect(prompt.type()).toBe('prompt');
-    expect(prompt.message()).toBe('Nhập nội dung text:');
-    await prompt.accept('t^2-1');
-  });
   await page.getByRole('button', { name: 'Văn bản' }).click();
   await page.mouse.click(box.x + 300, box.y + 250);
+  const textDialog = page.getByRole('dialog', { name: 'Thêm văn bản' });
+  await expect(textDialog).toBeVisible();
+  await textDialog.locator('#board-text-input').fill('t^2-1');
+  await textDialog.getByRole('button', { name: 'Thêm' }).click();
+  await expect(textDialog).not.toBeVisible();
 
   await page.getByRole('group', { name: 'Công cụ vẽ' }).getByRole('button', { name: 'Nhận dạng' }).click();
   const recognitionRequest = page.waitForRequest(
@@ -447,7 +447,7 @@ test('đồ thị giữ nguyên kích thước qua thời gian và sau khi chuy�
   expect(Math.abs((stable?.height ?? 0) - (initial?.height ?? 0))).toBeLessThan(2);
 
   await frame.getByRole('tab', { name: 'Lời giải' }).click();
-  await expect(frame.getByText('Tính biệt thức')).toBeVisible();
+  await expect(frame.getByText('Tính biệt thức', { exact: true })).toBeVisible();
   await frame.getByRole('tab', { name: 'Đồ thị' }).click();
   await expect(frame.locator('.jsxgraph-container')).toBeVisible();
   const remounted = await frame.locator('.jsxgraph-container').boundingBox();

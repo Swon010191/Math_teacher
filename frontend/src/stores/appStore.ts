@@ -40,7 +40,12 @@ interface AppState {
 }
 
 function makeId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    // crypto.randomUUID có sẵn trên trình duyệt hiện đại + môi trường test.
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
 }
 
 const initialConfirm: ConfirmState = {
@@ -101,7 +106,15 @@ export const useAppStore = create<AppState>()(
       clearToast: () => set({ toast: null }),
 
       loadBoard: (objects, activities) =>
-        set({ objects, activities, selectedIds: [] }),
+        set({
+          objects,
+          activities,
+          selectedIds: [],
+          // Mở/nhập bảng mới thì bỏ chọn, đóng hộp xác nhận và toast cũ
+          // để không còn trạng thái treo từ bảng trước đó.
+          confirm: initialConfirm,
+          toast: null,
+        }),
     }),
     {
       name: 'ai-teaching-assistant-board',
@@ -109,6 +122,9 @@ export const useAppStore = create<AppState>()(
         objects: state.objects,
         activities: state.activities,
         viewport: state.viewport,
+        // Giữ lại công cụ đang dùng khi reload; hộp xác nhận, vùng chọn
+        // và toast thì không lưu để tránh trạng thái treo.
+        tool: state.tool,
       }),
     },
   ),
