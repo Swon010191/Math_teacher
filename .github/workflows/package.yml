@@ -28,7 +28,6 @@ jobs:
         run: choco install innosetup --no-progress -y
 
       - name: Build frontend + backend exe + launcher
-        working-directory: Math_teacher
         run: |
           cd backend
           python -m venv .venv
@@ -54,7 +53,7 @@ jobs:
         shell: pwsh
 
       - name: Compile Setup.exe
-        working-directory: Math_teacher/packaging
+        working-directory: packaging
         run: |
           New-Item -ItemType Directory stage\tools -Force | Out-Null
           Copy-Item ..\backend\dist\MathBackend\* stage\backend -Recurse -Force
@@ -70,14 +69,15 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Setup-AI-Teaching-Assistant
-          path: Math_teacher/packaging/output/Setup-*.exe
+          path: packaging/output/Setup-*.exe
 
       - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: Math_teacher/packaging/output/Setup-*.exe
+          files: packaging/output/Setup-*.exe
           generate_release_notes: true
+          append_body: true
           body: |
             ## Cài đặt
 
