@@ -744,3 +744,42 @@ class TestUnsupported:
     def test_bien_mu_bien_bi_tu_choi(self) -> None:
         with pytest.raises(MathEngineError):
             analyze_expression("x^x")
+
+
+class TestTenRiengVoNghia:
+    def test_abc_bi_tu_choi(self) -> None:
+        with pytest.raises(MathEngineError):
+            analyze_expression("abc")
+
+    def test_bien_mot_ky_tu_van_hop_le(self) -> None:
+        result = analyze_expression("x")
+        assert result.kind == "linear"
+
+
+class TestLogNgoacLong:
+    """Hoi quy: log co co so phai chiu duoc bieu thuc long nhau."""
+
+    def test_log10_sin_x_cong_1_parse_duoc(self) -> None:
+        normalized = normalize_expression("log10(sin(x)+1)")
+        assert "log(" in normalized
+        assert "10" in normalized
+
+    def test_lg_tich_ngoac_long(self) -> None:
+        normalized = normalize_expression("lg((x+1)*2)")
+        assert "10" in normalized
+
+    def test_log2_bien_don(self) -> None:
+        result = analyze_expression("log2(x)")
+        assert result.kind == "logarithmic"
+        assert result.logarithmic is not None
+        assert result.logarithmic.base == pytest.approx(2.0)
+
+
+class TestNormalizeNhieuBien:
+    def test_normalize_bien_t(self) -> None:
+        assert "Symbol('t'" in normalize_expression("t^2-1")
+
+    def test_bo_ve_trai_ten_bat_ky(self) -> None:
+        normalized = normalize_expression("z = 2*t + 1")
+        assert "Pow" not in normalized
+        assert "t" in normalized

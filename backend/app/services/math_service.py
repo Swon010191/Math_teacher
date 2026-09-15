@@ -83,9 +83,9 @@ _GLOBAL_DICT = {
 _SUPERSCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
 _SUBSCRIPT_CHARS = str.maketrans("₀₁₂₃₄₅₆₇₈₉ₑ", "0123456789e")
 
-_LOG_BASE_RE = re.compile(r"\blog(\d+)\s*\(([^()]*)\)")
-_LG_RE = re.compile(r"\blg\s*\(([^()]*)\)")
 _LOGE_RE = re.compile(r"\bloge\s*\(")
+_LOG_BASE_NAME_RE = re.compile(r"\blog(\d+)\s*\(")
+_LG_NAME_RE = re.compile(r"\blg\s*\(")
 
 
 class MathEngineError(ValueError):
@@ -123,10 +123,46 @@ def _normalize_glyphs(text: str) -> str:
     return text.translate(_SUBSCRIPT_CHARS)
 
 
+def _find_matching_paren(text: str, open_index: int) -> int:
+    """Vị trí ngoặc đóng tương ứng với ngoặc mở tại open_index (-1 nếu lẻ)."""
+    depth = 0
+    for index in range(open_index, len(text)):
+        if text[index] == "(":
+            depth += 1
+        elif text[index] == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    return -1
+
+
+def _replace_prefixed_call(
+    text: str, pattern: re.Pattern[str], base_of: object
+) -> str:
+    """Thay logN(...)/lg(...) bằng log(..., base), chịu ngoặc lồng nhau."""
+    guard = 0
+    while guard < 1000:
+        guard += 1
+        match = pattern.search(text)
+        if not match:
+            break
+        open_index = match.end() - 1
+        close_index = _find_matching_paren(text, open_index)
+        if close_index == -1:
+            break
+        inner = text[open_index + 1 : close_index]
+        base = base_of(match) if callable(base_of) else base_of
+        replacement = f"log({inner},{base})"
+        text = text[: match.start()] + replacement + text[close_index + 1 :]
+    return text
+
+
 def _fix_log_forms(text: str) -> str:
     """log10(x) -> log(x,10); lg(x) -> log(x,10); log2(x) -> log(x,2); loge(x) -> log(x)."""
-    text = _LOG_BASE_RE.sub(lambda m: f"log({m.group(2)},{m.group(1)})", text)
-    text = _LG_RE.sub(lambda m: f"log({m.group(1)},10)", text)
+    text = _replace_prefixed_call(
+        text, _LOG_BASE_NAME_RE, lambda m: m.group(1)
+    )
+    text = _replace_prefixed_call(text, _LG_NAME_RE, "10")
     text = _LOGE_RE.sub("log(", text)
     return text
 
@@ -142,15 +178,22 @@ def _prepare_text(raw: str) -> str:
     return _fix_log_forms(text)
 
 
-def _preprocess_input(raw: str) -> str:
+def _preprocess_input(raw: str, variable_names: set[str] | None = None) -> str:
     """Chuẩn hóa chuỗi thô thành dạng SymPy chấp nhận được (chưa parse).
 
     - Bỏ phần vế trái (y = ..., f(x) = ...) nếu có.
     - LaTeX thô (\\frac, \\sqrt, \\cdot...) -> cú pháp SymPy.
     - Ngoặc nhọn {}, số mũ Unicode, ký hiệu · × ÷, lg()/log10()/log2().
+    - Nếu không truyền variable_names, tự phát hiện để biểu thức nhiều
+      biến (ví dụ t^2-1) được validate nhất quán với analyze/solve.
     """
     text = _prepare_text(raw)
-    _validate_input_tokens(text)
+    if variable_names is None:
+        try:
+            variable_names = _variable_names(text)
+        except MathEngineError:
+            variable_names = None
+    _validate_input_tokens(text, variable_names)
     return text
 
 
@@ -345,6 +388,13 @@ def _parse_analysis_input(raw: str) -> _AnalysisInput:
     if len(names) != 1:
         raise MathEngineError("Phân tích hàm yêu cầu đúng một biến nguồn.")
     source = source_hint or names[0]
+    if parsed.is_Symbol and len(source) > 1:
+        # Một tên riêng nhiều ký tự (ví dụ "abc") gần như luôn là lỗi
+        # gõ/nhận dạng, không phải hàm số. Tên một ký tự (x, t, u...)
+        # vẫn được chấp nhận làm hàm đồng nhất.
+        raise MathEngineError(
+            "Biểu thức chỉ là một tên riêng, chưa phải hàm số hay phương trình."
+        )
     if dependent == source:
         raise MathEngineError("Biến nguồn phải khác biến phụ thuộc.")
     if source != names[0]:
@@ -873,8 +923,13 @@ def _validate_expansion_budget(expr: sp.Expr) -> None:
 
 def normalize_expression(raw: str) -> str:
     """Chuẩn hóa biểu thức thô thành dạng SymPy (dạng srepr)."""
-    text = _preprocess_input(raw)
-    expr = _parse_limited(text)
+    text = _prepare_text(raw)
+    names = _variable_names(text)
+    symbols = {name: sp.Symbol(name, real=True) for name in names}
+    if "x" in text and "x" not in names:
+        symbols["x"] = _X
+    _validate_input_tokens(text, set(symbols))
+    expr = _parse_limited(text, symbols or None)
     return sp.srepr(expr)
 
 
