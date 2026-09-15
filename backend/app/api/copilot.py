@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import re
+
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
@@ -12,6 +14,7 @@ from app.services.copilot_settings import (
     get_active_copilot_provider,
     set_active_copilot_provider,
 )
+from app.services.math_service import MathEngineError
 
 router = APIRouter(prefix="/api/copilot", tags=["copilot"])
 
@@ -37,10 +40,16 @@ def suggest_content(request: CopilotRequest) -> CopilotSuggestion:
     """
     try:
         return suggest(request)
+    except MathEngineError as exc:
+        raise HTTPException(
+            status_code=400,
+            detail="Biểu thức không hợp lệ hoặc không được hỗ trợ.",
+        ) from exc
     except NotImplementedError as exc:
         raise HTTPException(status_code=501, detail=str(exc)) from exc
     except Exception as exc:  # noqa: BLE001 - lỗi provider
-        raise HTTPException(status_code=500, detail=str(exc)) from exc
+        detail = re.sub(r"https?://[^\s),;]+", "<dịch vụ AI>", str(exc))
+        raise HTTPException(status_code=500, detail=detail) from exc
 
 
 @router.get("/provider", response_model=CopilotProviderState)

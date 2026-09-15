@@ -26,3 +26,7 @@ class RecognitionProvider(ABC):
         Kết quả luôn đi kèm confidence; bước xác nhận của giáo viên là bắt buộc.
         """
         raise NotImplementedError
+
+    def close(self) -> None:
+        """Giải phóng tài nguyên (mặc định không làm gì)."""
+        return None

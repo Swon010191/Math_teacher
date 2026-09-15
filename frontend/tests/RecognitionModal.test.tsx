@@ -20,10 +20,12 @@ describe('RecognitionModal', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và tạo activity' }));
     expect(screen.getByRole('button', { name: 'Đang phân tích...' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Hủy' })).toBeDisabled();
 
     await waitFor(() => {
       expect(onConfirm).toHaveBeenCalledTimes(1);
       expect(screen.getByRole('button', { name: 'Xác nhận và tạo activity' })).toBeEnabled();
+      expect(screen.getByRole('alert')).toHaveTextContent('Biểu thức không hợp lệ');
     });
 
     fireEvent.click(screen.getByRole('button', { name: 'Hủy' }));
@@ -45,5 +47,44 @@ describe('RecognitionModal', () => {
 
     fireEvent.keyDown(screen.getByRole('textbox'), { key: 'Escape' });
     expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('bắt buộc chọn biến cần giải cho phương trình nhiều biến', async () => {
+    const onConfirm = vi.fn();
+    render(
+      <RecognitionModal
+        open
+        latex="x+y=2"
+        expression="x+y=2"
+        confidence={1}
+        onCancel={vi.fn()}
+        onConfirm={onConfirm}
+      />,
+    );
+
+    expect(screen.getByTestId('auto-classification')).toHaveTextContent('Giải phương trình');
+    const confirmButton = screen.getByRole('button', { name: 'Xác nhận và tạo activity' });
+    expect(confirmButton).toBeDisabled();
+    fireEvent.change(screen.getByLabelText('Biến cần giải:'), { target: { value: 'y' } });
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('x+y=2', {
+      intent: 'solve',
+      solveFor: 'y',
+    }));
+  });
+
+  it('diễn giải hàm viết ngược và cho phép override intent', async () => {
+    const onConfirm = vi.fn();
+    render(
+      <RecognitionModal open latex="2x+1=y" expression="2x+1=y" confidence={1} source="typed" onCancel={vi.fn()} onConfirm={onConfirm} />,
+    );
+
+    expect(screen.getByTestId('normalized-interpretation')).toHaveTextContent('y=2x+1');
+    expect(screen.getByRole('button', { name: 'Hàm số' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'Giải phương trình' }));
+    fireEvent.change(screen.getByLabelText('Biến cần giải:'), { target: { value: 'y' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Xác nhận và tạo activity' }));
+    await waitFor(() => expect(onConfirm).toHaveBeenCalledWith('2x+1=y', { intent: 'solve', solveFor: 'y' }));
   });
 });

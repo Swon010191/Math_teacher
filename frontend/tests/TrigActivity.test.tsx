@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ActivityModel } from '../src/features/activities/activityTypes';
@@ -68,5 +68,15 @@ describe('TrigActivity', () => {
     render(<TrigActivity activity={activity} />);
     expect(screen.getByRole('button', { name: 'Bước trước' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bước tiếp' })).toBeInTheDocument();
+  });
+
+  it('chuyển invalid → valid khi b đi qua 0', () => {
+    render(<TrigActivity activity={activity} />);
+    const slider = screen.getByRole('slider', { name: 'Hệ số b' });
+    fireEvent.change(slider, { target: { value: '0' } });
+    expect(screen.getByRole('alert')).toBeInTheDocument();
+    expect(screen.getByText('b = 0')).toBeInTheDocument();
+    fireEvent.change(slider, { target: { value: '1' } });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

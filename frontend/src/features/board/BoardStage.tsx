@@ -1,10 +1,10 @@
 import Konva from 'konva';
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Layer, Line, Rect, Stage, Text as KonvaText } from 'react-konva';
 
 import { makeId, useAppStore } from '../../stores/appStore';
 import { normalizeRegion, objectBounds, regionIntersects } from './types';
-import type { Region, StrokeObject, Viewport } from './types';
+import type { BoardObject, Region, StrokeObject, TextObject, Viewport } from './types';
 
 interface BoardStageProps {
   containerRef: React.RefObject<HTMLDivElement>;
@@ -20,6 +20,82 @@ function screenToBoard(screenX: number, screenY: number, viewport: Viewport) {
     x: (screenX - viewport.x) / viewport.scale,
     y: (screenY - viewport.y) / viewport.scale,
   };
+}
+
+export function captureBoardRegion(objects: BoardObject[], region: Region): string | null {
+  const normalized = normalizeRegion(region);
+  const drawableObjects = objects.filter(
+    (object): object is StrokeObject | TextObject =>
+      (object.type === 'stroke' || object.type === 'text') &&
+      regionIntersects(normalized, objectBounds(object)),
+  );
+  if (drawableObjects.length === 0) return null;
+
+  const rawWidth = Math.max(1, normalized.x1 - normalized.x0);
+  const rawHeight = Math.max(1, normalized.y1 - normalized.y0);
+  // Giới hạn kích thước ảnh chụp để tránh OOM khi khoanh vùng quá lớn:
+  // tối đa 1600px mỗi chiều (tỉ lệ giữ nguyên).
+  const MAX_CAPTURE_SIZE = 1600;
+  const downscale = Math.min(1, MAX_CAPTURE_SIZE / rawWidth, MAX_CAPTURE_SIZE / rawHeight);
+  const width = Math.max(1, Math.round(rawWidth * downscale));
+  const height = Math.max(1, Math.round(rawHeight * downscale));
+  const pixelRatio = downscale < 1 ? 1 : 2;
+  const container = document.createElement('div');
+  container.style.position = 'absolute';
+  container.style.left = '-9999px';
+  container.style.top = '0';
+  container.style.width = `${width}px`;
+  container.style.height = `${height}px`;
+  document.body.appendChild(container);
+
+  let offscreen: Konva.Stage | null = null;
+  try {
+    offscreen = new Konva.Stage({ width, height, container });
+    const layer = new Konva.Layer();
+    layer.add(
+      new Konva.Rect({
+        x: 0,
+        y: 0,
+        width,
+        height,
+        fill: '#ffffff',
+        listening: false,
+      }),
+    );
+
+    drawableObjects.forEach((object) => {
+      if (object.type === 'stroke') {
+        layer.add(
+          new Konva.Line({
+            points: object.points.map((v) => v * downscale),
+            stroke: object.color,
+            strokeWidth: Math.max(1, object.strokeWidth * downscale),
+            lineCap: 'round',
+            lineJoin: 'round',
+            x: (object.x - normalized.x0) * downscale,
+            y: (object.y - normalized.y0) * downscale,
+          }),
+        );
+        return;
+      }
+
+      layer.add(
+        new Konva.Text({
+          x: (object.x - normalized.x0) * downscale,
+          y: (object.y - normalized.y0) * downscale,
+          text: object.text,
+          fontSize: Math.max(1, object.fontSize * downscale),
+          fill: object.color,
+        }),
+      );
+    });
+
+    offscreen.add(layer);
+    return offscreen.toDataURL({ pixelRatio });
+  } finally {
+    offscreen?.destroy();
+    container.remove();
+  }
 }
 
 export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: BoardStageProps) {
@@ -38,9 +114,25 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
   const [drawing, setDrawing] = useState<number[] | null>(null);
   const [marquee, setMarquee] = useState<Region | null>(null);
   const [panning, setPanning] = useState(false);
+  const [size, setSize] = useState({ width: 800, height: 600 });
   const dragStart = useRef<{ x: number; y: number } | null>(null);
+  const pinchStart = useRef<{ distance: number; scale: number; x: number; y: number } | null>(null);
   const clickTargetId = useRef<string | null>(null);
   const selDrag = useRef<{ startX: number; startY: number; originals: { id: string; x: number; y: number }[] } | null>(null);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+    const updateSize = () => setSize({
+      width: Math.max(1, container.clientWidth),
+      height: Math.max(1, container.clientHeight),
+    });
+    updateSize();
+    if (typeof ResizeObserver === 'undefined') return;
+    const observer = new ResizeObserver(updateSize);
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [containerRef]);
 
   const getPointerBoard = useCallback(() => {
     const stage = stageRef.current;
@@ -61,45 +153,8 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
   );
 
   const captureRegion = useCallback(
-    (region: Region) => {
-      const ids = objectsInRegion(region);
-      const strokes = objects.filter((o): o is StrokeObject => o.type === 'stroke' && ids.includes(o.id));
-      if (strokes.length === 0) return null;
-      const normalized = normalizeRegion(region);
-      const width = Math.max(1, normalized.x1 - normalized.x0);
-      const height = Math.max(1, normalized.y1 - normalized.y0);
-      const container = document.createElement('div');
-      container.style.position = 'absolute';
-      container.style.left = '-9999px';
-      container.style.top = '0';
-      container.style.width = `${width}px`;
-      container.style.height = `${height}px`;
-      document.body.appendChild(container);
-      const offscreen = new Konva.Stage({
-        width,
-        height,
-        container,
-      });
-      const layer = new Konva.Layer();
-      strokes.forEach((s) => {
-        const line = new Konva.Line({
-          points: s.points,
-          stroke: s.color,
-          strokeWidth: s.strokeWidth,
-          lineCap: 'round',
-          lineJoin: 'round',
-          x: s.x - normalized.x0,
-          y: s.y - normalized.y0,
-        });
-        layer.add(line);
-      });
-      offscreen.add(layer);
-      const dataUrl = offscreen.toDataURL({ pixelRatio: 2 });
-      offscreen.destroy();
-      container.remove();
-      return dataUrl;
-    },
-    [objects, objectsInRegion],
+    (region: Region) => captureBoardRegion(objects, region),
+    [objects],
   );
 
   const handleWheel = useCallback(
@@ -123,9 +178,10 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     [viewport, setViewport],
   );
 
-  const onMouseDown = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const onPointerDown = useCallback(
+    (e: Konva.KonvaEventObject<PointerEvent>) => {
       if (e.evt.button === 1) {
+        e.evt.preventDefault();
         setPanning(true);
         dragStart.current = { x: e.evt.clientX, y: e.evt.clientY };
         return;
@@ -178,8 +234,8 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     [tool, objects, selectedIds, getPointerBoard, setSelected, onAddText],
   );
 
-  const onMouseMove = useCallback(
-    (e: Konva.KonvaEventObject<MouseEvent>) => {
+  const onPointerMove = useCallback(
+    (e: Konva.KonvaEventObject<PointerEvent>) => {
       if (panning && dragStart.current) {
         const dx = e.evt.clientX - dragStart.current.x;
         const dy = e.evt.clientY - dragStart.current.y;
@@ -207,9 +263,45 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     [panning, tool, drawing, marquee, viewport, setViewport, getPointerBoard, updateObject],
   );
 
-  const onMouseUp = useCallback(() => {
+  const onTouchMove = useCallback(
+    (e: Konva.KonvaEventObject<TouchEvent>) => {
+      const touches = e.evt.touches;
+      if (touches.length !== 2) {
+        pinchStart.current = null;
+        return;
+      }
+      e.evt.preventDefault();
+      const stage = stageRef.current;
+      if (!stage) return;
+      const rect = stage.container().getBoundingClientRect();
+      const t0 = touches[0];
+      const t1 = touches[1];
+      const distance = Math.hypot(t0.clientX - t1.clientX, t0.clientY - t1.clientY);
+      const midX = (t0.clientX + t1.clientX) / 2 - rect.left;
+      const midY = (t0.clientY + t1.clientY) / 2 - rect.top;
+      const start = pinchStart.current;
+      if (!start || distance <= 0) {
+        pinchStart.current = { distance, scale: viewport.scale, x: viewport.x, y: viewport.y };
+        return;
+      }
+      const newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, (start.scale * distance) / start.distance));
+      setViewport({
+        scale: newScale,
+        x: midX - ((midX - start.x) / start.scale) * newScale,
+        y: midY - ((midY - start.y) / start.scale) * newScale,
+      });
+    },
+    [viewport, setViewport],
+  );
+
+  const onTouchEnd = useCallback(() => {
+    pinchStart.current = null;
+  }, []);
+
+  const onPointerUp = useCallback(() => {
     setPanning(false);
     dragStart.current = null;
+    pinchStart.current = null;
     selDrag.current = null;
     if (tool === 'pen' && drawing) {
       if (drawing.length >= 4) {
@@ -228,11 +320,16 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     if (marquee) {
       const width = Math.abs(marquee.x1 - marquee.x0);
       const height = Math.abs(marquee.y1 - marquee.y0);
-      if (width > 5 && height > 5) {
+      // Ngưỡng theo pixel màn hình (5px) để zoom nhỏ không quá nhạy,
+      // zoom lớn không quá đơ.
+      const threshold = 5 / viewport.scale;
+      if (width > threshold && height > threshold) {
         if (tool === 'ai') {
           const image = captureRegion(marquee);
           if (image) {
             onRecognizeRegion(image, '', Math.min(marquee.x0, marquee.x1), Math.min(marquee.y0, marquee.y1));
+          } else {
+            showToast('Không có nét vẽ hoặc Text trong vùng nhận dạng');
           }
         } else if (tool === 'erase') {
           const ids = objectsInRegion(marquee);
@@ -248,22 +345,25 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       }
       setMarquee(null);
     }
-  }, [tool, drawing, marquee, addObject, captureRegion, objectsInRegion, removeObject, setSelected, onRecognizeRegion, showToast]);
+  }, [tool, drawing, marquee, viewport.scale, addObject, captureRegion, objectsInRegion, removeObject, setSelected, onRecognizeRegion, showToast]);
 
-  const marqueeColor = tool === 'select' ? '#3b82f6' : '#ef4444';
-  const marqueeFill = tool === 'select' ? 'rgba(59,130,246,0.08)' : 'rgba(239,68,68,0.08)';
+  const marqueeColor = tool === 'select' ? '#3b82f6' : tool === 'ai' ? '#7c3aed' : '#ef4444';
+  const marqueeFill = tool === 'select' ? 'rgba(59,130,246,0.08)' : tool === 'ai' ? 'rgba(124,58,237,0.08)' : 'rgba(239,68,68,0.08)';
 
   return (
     <Stage
       ref={stageRef}
-      width={containerRef.current?.clientWidth ?? 800}
-      height={containerRef.current?.clientHeight ?? 600}
+      width={size.width}
+      height={size.height}
       onWheel={handleWheel}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
-      style={{ cursor: tool === 'pen' ? 'crosshair' : tool === 'select' ? 'default' : tool === 'pan' ? 'move' : 'pointer' }}
+      onPointerDown={onPointerDown}
+      onPointerMove={onPointerMove}
+      onPointerUp={onPointerUp}
+      onPointerLeave={onPointerUp}
+      onPointerCancel={onPointerUp}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      style={{ cursor: tool === 'pen' ? 'crosshair' : tool === 'select' ? 'default' : tool === 'pan' ? 'move' : 'pointer', touchAction: 'none' }}
       x={viewport.x}
       y={viewport.y}
       scaleX={viewport.scale}
@@ -276,7 +376,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
           y={-2000}
           width={4000}
           height={4000}
-          fill="#ffffff"
+          fill="rgba(255,255,255,0.01)"
           stroke="#e5e7eb"
           strokeWidth={0.5}
           dash={[4, 4]}

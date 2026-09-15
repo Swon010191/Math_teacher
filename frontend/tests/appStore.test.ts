@@ -36,6 +36,24 @@ describe('appStore', () => {
     expect(Object.keys(activities)).toHaveLength(2);
   });
 
+  it('xóa activity object đồng thời dọn dữ liệu activity', () => {
+    useAppStore.getState().upsertActivity('a1', { type: 'quadratic_function' });
+    useAppStore.getState().addObject({
+      id: 'activity-object',
+      type: 'activity',
+      activityId: 'a1',
+      x: 0,
+      y: 0,
+      width: 420,
+      height: 340,
+    });
+
+    useAppStore.getState().removeObject('activity-object');
+
+    expect(useAppStore.getState().objects).toHaveLength(0);
+    expect(useAppStore.getState().activities).not.toHaveProperty('a1');
+  });
+
   it('makeId tạo id duy nhất', () => {
     expect(makeId()).not.toBe(makeId());
   });

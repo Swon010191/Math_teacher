@@ -6,12 +6,14 @@ import {
   FEATURE_COLORS,
   type FeatureCtx,
 } from './ActivityCanvas';
-import { expFeatures, formatExp, type ExpParams } from './expMath';
+import { expFeatures, formatExp, validateExpParams, type ExpParams } from './expMath';
 import { formatNum } from './quadraticMath';
 
 const { yellow: YELLOW, red: RED, purple: PURPLE } = FEATURE_COLORS;
 
 export function ExponentialActivity({ activity }: { activity: ActivityModel }) {
+  const sourceVariable = activity.math.source_variable ?? 'x';
+  const dependentVariable = activity.math.dependent_variable ?? 'y';
   const initial = useMemo<Record<string, number>>(
     () => ({
       a: activity.math.a ?? 1,
@@ -22,8 +24,8 @@ export function ExponentialActivity({ activity }: { activity: ActivityModel }) {
   );
 
   const formula = useCallback(
-    (p: Record<string, number>) => formatExp(p as unknown as ExpParams),
-    [],
+    (p: Record<string, number>) => formatExp(p as unknown as ExpParams, sourceVariable, dependentVariable),
+    [dependentVariable, sourceVariable],
   );
 
   const curve = useCallback((x: number, p: Record<string, number>) => {
@@ -31,6 +33,11 @@ export function ExponentialActivity({ activity }: { activity: ActivityModel }) {
     const { base } = expFeatures(q);
     return q.a * Math.pow(base, x) + q.c;
   }, []);
+
+  const validate = useCallback(
+    (p: Record<string, number>) => validateExpParams(p as unknown as ExpParams),
+    [],
+  );
 
   const drawFeatures = useCallback((ctx: FeatureCtx) => {
     const { params, revealed } = ctx;
@@ -84,12 +91,12 @@ export function ExponentialActivity({ activity }: { activity: ActivityModel }) {
       <>
         {revealed.has('asymptote') && (
           <span className="stat">
-            Tiệm cận ngang: y = {formatNum(f.horizontalAsymptote)}
+            Tiệm cận ngang: {dependentVariable} = {formatNum(f.horizontalAsymptote)}
           </span>
         )}
         {revealed.has('y_intercept') && (
           <span className="stat">
-            Cắt trục y tại y = {formatNum(f.yIntercept)}
+            Cắt trục {dependentVariable} tại {dependentVariable} = {formatNum(f.yIntercept)}
           </span>
         )}
         {revealed.has('root') &&
@@ -97,7 +104,7 @@ export function ExponentialActivity({ activity }: { activity: ActivityModel }) {
             <span className="stat">Không cắt trục hoành</span>
           ) : (
             <span className="stat">
-              Giao điểm trục x: ({formatNum(f.xIntercept)}, 0)
+               Giao điểm trục {sourceVariable}: ({formatNum(f.xIntercept)}, 0)
             </span>
           ))}
         <span className="stat muted">
@@ -113,6 +120,7 @@ export function ExponentialActivity({ activity }: { activity: ActivityModel }) {
       initial={initial}
       formula={formula}
       curve={curve}
+      validate={validate}
       drawFeatures={drawFeatures}
       stats={stats}
       chips={[

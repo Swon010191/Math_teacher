@@ -7,8 +7,9 @@ $BackendPython = Join-Path $BackendDir '.venv\Scripts\python.exe'
 $P2TDir = Join-Path $RepoRoot 'ai-tools\pix2text'
 $P2TPythonw = Join-Path $P2TDir '.venv\Scripts\pythonw.exe'
 $P2TLauncher = Join-Path $P2TDir 'serve_launcher.py'
-$BackendPort = 8000
-$P2TPort = 8503
+# Cho phép đổi port qua biến môi trường (khi port mặc định kẹt hoặc đóng gói).
+$BackendPort = if ($env:BACKEND_PORT) { [int]$env:BACKEND_PORT } else { 8000 }
+$P2TPort = if ($env:P2T_PORT) { [int]$env:P2T_PORT } else { 8503 }
 
 function Test-Port {
     param([int]$Port)
@@ -66,8 +67,14 @@ function Start-P2T {
 function Stop-P2T {
     $p2tPid = Get-PortPid -Port $P2TPort
     if ($p2tPid) {
-        try { taskkill /PID $p2tPid /T /F | Out-Null } catch {}
-        Write-Host "Đã tắt Pix2Text (pid $p2tPid)."
+        # Chỉ tắt khi đúng tiến trình Pix2Text (tránh giết nhầm app khác giữ port).
+        $proc = Get-CimInstance Win32_Process -Filter "ProcessId = $p2tPid" -ErrorAction SilentlyContinue
+        if ($proc -and ($proc.CommandLine -match 'serve_launcher|pix2text|p2t')) {
+            try { taskkill /PID $p2tPid /T /F | Out-Null } catch {}
+            Write-Host "Đã tắt Pix2Text (pid $p2tPid)."
+        } else {
+            Write-Host "Port $P2TPort đang bận bởi tiến trình lạ (pid $p2tPid) - không dám tắt." -ForegroundColor Yellow
+        }
     } else {
         Write-Host "Pix2Text không đang chạy."
     }

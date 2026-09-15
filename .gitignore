@@ -43,3 +43,20 @@ secrets/
 # ---- Local data / logs ----
 *.log
 data-local/
+
+# ---- Local AI tools / models (máy cá nhân, không commit) ----
+ai-tools/
+.pix2text/
+output-md-root/
+*.onnx
+*.bin
+*.tsbuildinfo
+
+# ---- Dong goi Setup.exe (build artifact) ----
+backend/app/static/
+backend/build/
+packaging/build/
+packaging/stage/
+packaging/output/
+# PyInstaller (tu sinh khi build)
+*.spec

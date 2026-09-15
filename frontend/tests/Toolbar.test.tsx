@@ -62,15 +62,32 @@ beforeEach(() => {
 });
 
 describe('Toolbar - trạng thái AI', () => {
-  it('backend kết nối: hiện "AI sẵn sàng"', async () => {
-    renderToolbar();
-    expect(await screen.findByText('AI sẵn sàng')).toBeInTheDocument();
+  it('backend kết nối: hiện nút AI với trạng thái truy cập được', async () => {
+    const { container } = renderToolbar();
+    const button = await screen.findByRole('button', { name: /Trạng thái máy chủ AI: sẵn sàng/ });
+    expect(button).toHaveTextContent('AI');
+    expect(button).toHaveClass('online');
+    expect(button.closest('.backend-status-wrap')).not.toBe(container.querySelector('.toolbar-actions'));
   });
 
-  it('backend ngắt kết nối: hiện "AI chưa kết nối"', async () => {
+  it('backend ngắt kết nối: phản ánh trạng thái trong accessible name', async () => {
     vi.mocked(checkHealth).mockResolvedValue({ connected: false, provider: '' });
     renderToolbar();
-    expect(await screen.findByText('AI chưa kết nối')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /Trạng thái máy chủ AI: chưa kết nối/ })).toHaveClass('offline');
+  });
+
+  it('ẩn chi tiết mặc định và bấm lần hai để đóng', async () => {
+    renderToolbar();
+    const button = await screen.findByRole('button', { name: /Trạng thái máy chủ AI/ });
+    expect(button).toHaveAttribute('aria-expanded', 'false');
+    expect(screen.queryByRole('dialog', { name: 'Thông tin AI' })).not.toBeInTheDocument();
+
+    fireEvent.click(button);
+    expect(await screen.findByRole('dialog', { name: 'Thông tin AI' })).toBeInTheDocument();
+    expect(button).toHaveAttribute('aria-expanded', 'true');
+
+    fireEvent.click(button);
+    expect(screen.queryByRole('dialog', { name: 'Thông tin AI' })).not.toBeInTheDocument();
   });
 
   it('bấm vào trạng thái: popover hiện provider đang dùng', async () => {

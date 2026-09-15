@@ -37,21 +37,26 @@ export function quadraticFeatures(p: QuadraticParams): QuadraticFeatures {
 }
 
 export function formatNum(n: number): string {
+  if (typeof n !== 'number' || !Number.isFinite(n)) return '?';
   if (Number.isInteger(n)) return String(n);
   return n.toFixed(2).replace(/\.?0+$/, '');
 }
 
-export function formatQuadratic(p: QuadraticParams): string {
+export function formatQuadratic(
+  p: QuadraticParams,
+  sourceVariable = 'x',
+  dependentVariable = 'y',
+): string {
   const { a, b, c } = p;
   const parts: string[] = [];
   if (a !== 0) {
-    parts.push(a === 1 ? 'x^2' : a === -1 ? '-x^2' : `${formatNum(a)}x^2`);
+    parts.push(a === 1 ? `${sourceVariable}^2` : a === -1 ? `-${sourceVariable}^2` : `${formatNum(a)}${sourceVariable}^2`);
   }
   if (b !== 0) {
-    parts.push(`${b > 0 && parts.length > 0 ? '+' : ''}${formatNum(b)}x`);
+    parts.push(`${b > 0 && parts.length > 0 ? '+' : ''}${formatNum(b)}${sourceVariable}`);
   }
   if (c !== 0 || parts.length === 0) {
     parts.push(`${c > 0 && parts.length > 0 ? '+' : ''}${formatNum(c)}`);
   }
-  return `y = ${parts.join(' ')}`;
+  return `${dependentVariable} = ${parts.join(' ')}`;
 }

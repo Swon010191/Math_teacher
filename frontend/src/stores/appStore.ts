@@ -12,6 +12,7 @@ export interface ConfirmState {
   confidence: number;
   x: number;
   y: number;
+  source?: 'typed' | 'ocr';
 }
 
 interface AppState {
@@ -39,7 +40,12 @@ interface AppState {
 }
 
 function makeId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  try {
+    // crypto.randomUUID có sẵn trên trình duyệt hiện đại + môi trường test.
+    return crypto.randomUUID();
+  } catch {
+    return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+  }
 }
 
 const initialConfirm: ConfirmState = {
@@ -49,6 +55,7 @@ const initialConfirm: ConfirmState = {
   confidence: 0,
   x: 0,
   y: 0,
+  source: 'ocr',
 };
 
 export const useAppStore = create<AppState>()(
@@ -77,10 +84,16 @@ export const useAppStore = create<AppState>()(
         })),
 
       removeObject: (id) =>
-        set((state) => ({
-          objects: state.objects.filter((o) => o.id !== id),
-          selectedIds: state.selectedIds.filter((sid) => sid !== id),
-        })),
+        set((state) => {
+          const removed = state.objects.find((object) => object.id === id);
+          const activities = { ...state.activities };
+          if (removed?.type === 'activity') delete activities[removed.activityId];
+          return {
+            objects: state.objects.filter((object) => object.id !== id),
+            activities,
+            selectedIds: state.selectedIds.filter((selectedId) => selectedId !== id),
+          };
+        }),
 
       setActivities: (activities) => set({ activities }),
       upsertActivity: (id, activity) =>
@@ -93,7 +106,15 @@ export const useAppStore = create<AppState>()(
       clearToast: () => set({ toast: null }),
 
       loadBoard: (objects, activities) =>
-        set({ objects, activities, selectedIds: [] }),
+        set({
+          objects,
+          activities,
+          selectedIds: [],
+          // Mở/nhập bảng mới thì bỏ chọn, đóng hộp xác nhận và toast cũ
+          // để không còn trạng thái treo từ bảng trước đó.
+          confirm: initialConfirm,
+          toast: null,
+        }),
     }),
     {
       name: 'ai-teaching-assistant-board',
@@ -101,6 +122,9 @@ export const useAppStore = create<AppState>()(
         objects: state.objects,
         activities: state.activities,
         viewport: state.viewport,
+        // Giữ lại công cụ đang dùng khi reload; hộp xác nhận, vùng chọn
+        // và toast thì không lưu để tránh trạng thái treo.
+        tool: state.tool,
       }),
     },
   ),

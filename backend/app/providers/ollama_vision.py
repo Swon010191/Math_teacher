@@ -15,13 +15,14 @@ import os
 import httpx
 
 from app.providers.base import RecognitionProvider
-from app.providers.normalize import to_expression
+from app.providers.normalize import to_problem_expression
 from app.schemas.recognition import RecognizeResult
 
 _PROMPT = """Bạn là công cụ nhận dạng công thức toán học từ ảnh chụp bảng.
 Chỉ trả về MỘT đối tượng JSON hợp lệ với đúng 3 trường:
 - "latex": công thức dạng LaTeX, ví dụ "y = x^2 - 4x + 3"
-- "expression": biểu thức dạng SymPy (chỉ vế phải), ví dụ "x**2 - 4*x + 3"
+- "expression": toàn bộ công thức/phương trình dạng SymPy, giữ nguyên vế trái và dấu bằng,
+  ví dụ "y = x**2 - 4*x + 3" hoặc "2*u + 3 = 9"
 - "confidence": số thực từ 0 đến 1 thể hiện độ tin cậy của bạn
 Không thêm bất kỳ văn bản nào khác ngoài JSON."""
 
@@ -48,7 +49,16 @@ class OllamaVisionProvider(RecognitionProvider):
     ) -> None:
         self._url = (url or os.environ.get("OLLAMA_URL", "http://localhost:11434")).rstrip("/")
         self._model = model or os.environ.get("OLLAMA_MODEL", "llava")
+        self._owns_client = http_client is None
         self._client = http_client or httpx.Client(timeout=timeout_seconds)
+
+    def close(self) -> None:
+        """Đóng HTTP client do provider tự tạo (tránh rò socket)."""
+        if self._owns_client:
+            try:
+                self._client.close()
+            except Exception:
+                pass
 
     def recognize(
         self,
@@ -75,6 +85,10 @@ class OllamaVisionProvider(RecognitionProvider):
                 f"Kiểm tra: ollama serve đang chạy và đã cài model. Chi tiết: {exc}"
             ) from exc
 
+        if not isinstance(payload, dict):
+            raise RuntimeError(
+                f"Ollama trả về dữ liệu không đúng định dạng (model {self._model})."
+            )
         raw = payload.get("response", "")
         try:
             data = json.loads(raw)
@@ -82,10 +96,19 @@ class OllamaVisionProvider(RecognitionProvider):
             raise RuntimeError(
                 f"Ollama không trả về JSON hợp lệ (model {self._model}): {raw[:300]!r}"
             ) from exc
+        if not isinstance(data, dict):
+            raise RuntimeError(
+                f"Ollama không trả về JSON hợp lệ (model {self._model}): {raw[:300]!r}"
+            )
 
         latex = str(data.get("latex", "")).strip()
-        expression = to_expression(str(data.get("expression", latex)))
-        confidence = float(data.get("confidence", 0.7))
+        expression = to_problem_expression(str(data.get("expression", latex)))
+        try:
+            confidence = float(data.get("confidence", 0.7))
+        except (TypeError, ValueError) as exc:
+            raise RuntimeError(
+                f"Ollama trả về confidence không hợp lệ (model {self._model})."
+            ) from exc
         if not latex or not expression:
             raise RuntimeError(f"Ollama trả về công thức rỗng (model {self._model}).")
         return RecognizeResult(

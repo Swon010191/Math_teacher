@@ -54,6 +54,8 @@ interface ActivityCanvasProps {
   steps: ActivityStep[];
   formula: (params: Record<string, number>) => string;
   curve: (x: number, params: Record<string, number>) => number;
+  validate?: (params: Record<string, number>) => string | null;
+  onParamsChanged?: () => void;
   drawFeatures?: (ctx: FeatureCtx) => void;
   stats?: (params: Record<string, number>, revealed: Set<string>) => ReactNode;
 }
@@ -67,6 +69,8 @@ export function ActivityCanvas({
   steps,
   formula,
   curve,
+  validate,
+  onParamsChanged,
   drawFeatures,
   stats,
 }: ActivityCanvasProps) {
@@ -78,10 +82,12 @@ export function ActivityCanvas({
   const [params, setParams] = useState<Record<string, number>>(initial);
   const [revealed, setRevealed] = useState<Set<string>>(new Set(['graph']));
   const [stepIndex, setStepIndex] = useState(0);
+  const validationError = useMemo(() => validate?.(params) ?? null, [params, validate]);
 
   useEffect(() => {
-    if (!boardRef.current) return;
-    const jxgBoard = JXG.JSXGraph.initBoard(boardRef.current, {
+    const container = boardRef.current;
+    if (!container) return;
+    const jxgBoard = JXG.JSXGraph.initBoard(container, {
       boundingbox: [-10, 10, 10, -10],
       axis: true,
       grid: true,
@@ -90,10 +96,29 @@ export function ActivityCanvas({
       resize: { enabled: false, throttle: 100 },
     });
     board.current = jxgBoard;
+    let active = true;
+    const resize = () => {
+      if (!active) return;
+      const width = container.clientWidth;
+      const height = container.clientHeight;
+      if (width > 0 && height > 0) {
+        jxgBoard.resizeContainer(width, height, true);
+        jxgBoard.fullUpdate();
+      }
+    };
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(resize);
+    observer?.observe(container);
+    resize();
     return () => {
+      active = false;
+      observer?.unobserve(container);
+      observer?.disconnect();
       JXG.JSXGraph.freeBoard(jxgBoard);
-      board.current = null;
-      elements.current.clear();
+      if (board.current === jxgBoard) {
+        board.current = null;
+        curveEl.current = null;
+        elements.current.clear();
+      }
     };
   }, []);
 
@@ -153,6 +178,11 @@ export function ActivityCanvas({
     const b = board.current;
     if (!b) return;
     if (curveEl.current) b.removeObject(curveEl.current);
+    curveEl.current = null;
+    if (validationError) {
+      elements.current.forEach((el) => setVisible(el, false));
+      return;
+    }
     curveEl.current = b.create(
       'functiongraph',
       [(x: number) => curve(x, params), -10, 10],
@@ -160,7 +190,7 @@ export function ActivityCanvas({
     ) as unknown as JXG.GeometryElement;
     drawFeatures?.({ board: b, params, revealed, create, pool, setVisible, setPos });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params, revealed, curve, drawFeatures]);
+  }, [params, revealed, curve, drawFeatures, validationError]);
 
   const formulaLatex = useMemo(() => formula(params), [formula, params]);
   const formulaHtml = useMemo(
@@ -189,6 +219,7 @@ export function ActivityCanvas({
   return (
     <div className="activity-canvas" data-testid={testId}>
       <div className="activity-formula" dangerouslySetInnerHTML={{ __html: formulaHtml }} />
+      {validationError && <div role="alert">{validationError}</div>}
       <div className="jsxgraph-container" ref={boardRef} data-testid="jsxgraph-container" />
       <div className="activity-controls">
         {chips.length > 0 && (
@@ -198,6 +229,7 @@ export function ActivityCanvas({
                 key={chip.key}
                 className={`chip${revealed.has(chip.key) ? ' on' : ''}`}
                 onClick={() => toggle(chip.key)}
+                aria-pressed={revealed.has(chip.key)}
               >
                 {chip.label}
               </button>
@@ -218,7 +250,10 @@ export function ActivityCanvas({
                   step={slider.step ?? 0.1}
                   value={params[slider.key]}
                   onChange={(e) =>
-                    setParams({ ...params, [slider.key]: Number(e.target.value) })
+                    {
+                      onParamsChanged?.();
+                      setParams({ ...params, [slider.key]: Number(e.target.value) });
+                    }
                   }
                   aria-label={`Hệ số ${slider.key}`}
                 />
@@ -250,7 +285,9 @@ export function ActivityCanvas({
             </button>
           </div>
         )}
-        {stats && <div className="activity-stats">{stats(params, revealed)}</div>}
+        {stats && !validationError && (
+          <div className="activity-stats">{stats(params, revealed)}</div>
+        )}
       </div>
     </div>
   );

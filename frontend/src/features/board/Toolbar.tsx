@@ -15,9 +15,9 @@ const TOOLS: { id: Tool; label: string; icon: string }[] = [
   { id: 'pan', label: 'Di chuyển', icon: '✋' },
   { id: 'select', label: 'Chọn', icon: '✥' },
   { id: 'pen', label: 'Bút', icon: '✎' },
-  { id: 'text', label: 'Text', icon: 'T' },
-  { id: 'ai', label: 'AI', icon: '✦' },
-  { id: 'erase', label: 'Xóa', icon: '⌫' },
+  { id: 'text', label: 'Văn bản', icon: 'T' },
+  { id: 'ai', label: 'Nhận dạng', icon: '✦' },
+  { id: 'erase', label: 'Tẩy vùng', icon: '⌫' },
 ];
 
 const DEFAULT_PROVIDERS = ['mock', 'ollama_vision', 'pix2text'];
@@ -48,17 +48,21 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [switching, setSwitching] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  const providerChangeVersionRef = useRef(0);
 
   useEffect(() => {
     let alive = true;
     const check = async () => {
+      const providerVersion = providerChangeVersionRef.current;
       const info = await checkHealth();
       if (!alive) return;
-      setHealth(info);
+      setHealth((previous) => providerVersion === providerChangeVersionRef.current
+        ? info
+        : { ...info, provider: previous?.provider ?? info.provider });
       if (info.connected) {
         try {
           const state = await getRecognitionProvider();
-          if (alive) {
+          if (alive && providerVersion === providerChangeVersionRef.current) {
             setProviderList(state.available.length ? state.available : DEFAULT_PROVIDERS);
             setHealth((prev) =>
               prev ? { ...prev, provider: state.provider } : prev,
@@ -99,14 +103,21 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
 
   const refreshStatus = async () => {
     if (!connected) return;
+    const providerVersion = providerChangeVersionRef.current;
     setCheckingStatus(true);
     try {
       const status = await getRecognitionProviderStatus();
-      setProviderStatus(status);
+      if (providerVersion === providerChangeVersionRef.current) {
+        setProviderStatus(status);
+      }
     } catch {
-      setProviderStatus([]);
+      if (providerVersion === providerChangeVersionRef.current) {
+        setProviderStatus([]);
+      }
     } finally {
-      setCheckingStatus(false);
+      if (providerVersion === providerChangeVersionRef.current) {
+        setCheckingStatus(false);
+      }
     }
   };
 
@@ -116,6 +127,7 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
 
   const changeProvider = async (name: string) => {
     if (!connected || name === health?.provider || switching) return;
+    providerChangeVersionRef.current += 1;
     setSwitching(true);
     try {
       const state = await setRecognitionProvider(name);
@@ -138,62 +150,65 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
 
   return (
     <div className="toolbar" role="toolbar" aria-label="Thanh công cụ">
-      <div className="toolbar-group" role="group" aria-label="Công cụ vẽ">
-        {TOOLS.map((t) => (
-          <button
-            key={t.id}
-            className={`tool-btn${tool === t.id ? ' active' : ''}`}
-            onClick={() => setTool(t.id)}
-            title={t.label}
-            aria-pressed={tool === t.id}
-          >
-            <span className="tool-icon">{t.icon}</span>
-            <span className="tool-label">{t.label}</span>
+      <div className="toolbar-actions">
+        <div className="toolbar-group" role="group" aria-label="Công cụ vẽ">
+          {TOOLS.map((t) => (
+            <button
+              key={t.id}
+              className={`tool-btn${tool === t.id ? ' active' : ''}`}
+              onClick={() => setTool(t.id)}
+              title={t.label}
+              aria-pressed={tool === t.id}
+            >
+              <span className="tool-icon">{t.icon}</span>
+              <span className="tool-label">{t.label}</span>
+            </button>
+          ))}
+        </div>
+        <div className="toolbar-group" role="group" aria-label="Bảng">
+          <button className="tool-btn" onClick={onTypedInput} title="Nhập công thức bằng bàn phím">
+            <span className="tool-icon">ƒ(x)</span>
+            <span className="tool-label">Công thức</span>
           </button>
-        ))}
+          <button className="tool-btn" onClick={onSave} title="Lưu bảng trên máy">
+            <span className="tool-icon">💾</span>
+            <span className="tool-label">Lưu</span>
+          </button>
+          <button className="tool-btn" onClick={onOpen} title="Mở bảng đã lưu">
+            <span className="tool-icon">📂</span>
+            <span className="tool-label">Mở</span>
+          </button>
+        </div>
+        <div className="toolbar-group" role="group" aria-label="Xuất nhập dữ liệu">
+          <button className="tool-btn" onClick={onExport} title="Xuất toàn bộ bảng ra file JSON">
+            <span className="tool-icon">⇪</span>
+            <span className="tool-label">Xuất JSON</span>
+          </button>
+          <button className="tool-btn" onClick={onImport} title="Nhập bảng từ file JSON">
+            <span className="tool-icon">⇩</span>
+            <span className="tool-label">Nhập JSON</span>
+          </button>
+          <button className="tool-btn danger" onClick={onClear} title="Xóa toàn bộ bảng">
+            <span className="tool-icon">🗑</span>
+            <span className="tool-label">Xóa bảng</span>
+          </button>
+        </div>
+        <div className="toolbar-hint">Di chuyển: kéo để dời bảng · Bút để vẽ · Chọn/Tẩy vùng: khoanh vùng để chọn hoặc xóa · Nhận dạng: khoanh vùng công thức · Lăn chuột để phóng to</div>
       </div>
-      <div className="toolbar-group" role="group" aria-label="Bảng">
-        <button className="tool-btn" onClick={onTypedInput} title="Nhập công thức bằng bàn phím">
-          <span className="tool-icon">ƒ(x)</span>
-          <span className="tool-label">Công thức</span>
-        </button>
-        <button className="tool-btn" onClick={onSave} title="Lưu bảng trên máy">
-          <span className="tool-icon">💾</span>
-          <span className="tool-label">Lưu</span>
-        </button>
-        <button className="tool-btn" onClick={onOpen} title="Mở bảng đã lưu">
-          <span className="tool-icon">📂</span>
-          <span className="tool-label">Mở</span>
-        </button>
-      </div>
-      <div className="toolbar-group" role="group" aria-label="Xuất nhập dữ liệu">
-        <button className="tool-btn" onClick={onExport} title="Xuất toàn bộ bảng ra file JSON">
-          <span className="tool-icon">⇪</span>
-          <span className="tool-label">Xuất JSON</span>
-        </button>
-        <button className="tool-btn" onClick={onImport} title="Nhập bảng từ file JSON">
-          <span className="tool-icon">⇩</span>
-          <span className="tool-label">Nhập JSON</span>
-        </button>
-        <button className="tool-btn danger" onClick={onClear} title="Xóa toàn bộ bảng">
-          <span className="tool-icon">🗑</span>
-          <span className="tool-label">Xóa bảng</span>
-        </button>
-      </div>
-      <div className="toolbar-hint">Di chuyển: kéo để dời bảng · Bút để vẽ · Chọn/Xóa: khoanh vùng để chọn hoặc xóa · AI: khoanh vùng công thức để nhận dạng · Lăn chuột để phóng to</div>
       <div className="backend-status-wrap" ref={containerRef}>
         <button
           className={`backend-status ${health === null ? 'checking' : connected ? 'online' : 'offline'}`}
           onClick={() => setPopoverOpen((o) => !o)}
           aria-expanded={popoverOpen}
           aria-haspopup="dialog"
-          aria-label="Trạng thái máy chủ AI và provider nhận dạng"
+          aria-controls="backend-provider-popover"
+          aria-label={`Trạng thái máy chủ AI: ${health === null ? 'đang kiểm tra' : connected ? 'sẵn sàng' : 'chưa kết nối'}`}
         >
-          <span className="dot" />
-          <span>{health === null ? 'Đang kiểm tra...' : connected ? 'AI sẵn sàng' : 'AI chưa kết nối'}</span>
+          <span className="dot" aria-hidden="true" />
+          <span>AI</span>
         </button>
         {popoverOpen && (
-          <div className="backend-popover" role="dialog" aria-label="Thông tin AI">
+          <div id="backend-provider-popover" className="backend-popover" role="dialog" aria-label="Thông tin AI">
             <div className="backend-popover-title">Nhận dạng AI</div>
             <div className="backend-popover-status">
               {connected ? 'Máy chủ AI: sẵn sàng' : 'Máy chủ AI: chưa kết nối'}

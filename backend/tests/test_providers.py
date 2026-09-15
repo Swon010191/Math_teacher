@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import json
+
 import httpx
 import pytest
 
-from app.providers.normalize import to_expression
+from app.providers.normalize import to_expression, to_problem_expression
 from app.providers.ollama_copilot import OllamaCopilotProvider
 from app.providers.ollama_vision import OllamaVisionProvider
 from app.providers.pix2text import Pix2TextProvider
@@ -35,6 +37,20 @@ def _quadratic_request() -> CopilotRequest:
 
 
 class TestNormalize:
+    @pytest.mark.parametrize(
+        ("raw", "expected"),
+        [
+            ("z=2t+1", "z=2t+1"),
+            ("2u+3=9", "2u+3=9"),
+            (r"f(t) = \frac{t^{2}-1}{2}", "f(t) = (t**(2)-1)/(2)"),
+            ("y = t² × 2", "y = t**2 * 2"),
+        ],
+    )
+    def test_to_problem_expression_giu_relation(
+        self, raw: str, expected: str
+    ) -> None:
+        assert to_problem_expression(raw) == expected
+
     @pytest.mark.parametrize(
         ("raw", "expected"),
         [
@@ -85,14 +101,15 @@ class TestNormalize:
 class TestOllamaVisionProvider:
     def test_recognize_parse_json(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
-            body = request.read()
-            assert "images" in body.decode()
+            body = request.read().decode()
+            assert "images" in body
+            assert "toàn bộ công thức/phương trình" in body
             return httpx.Response(
                 200,
                 json={
                     "response": (
                         '{"latex": "y = x^2 - 4x + 3", '
-                        '"expression": "x**2 - 4*x + 3", "confidence": 0.91}'
+                        '"expression": "y = x**2 - 4*x + 3", "confidence": 0.91}'
                     )
                 },
             )
@@ -104,7 +121,7 @@ class TestOllamaVisionProvider:
         result = provider.recognize(image_base64="data:image/png;base64,QUJD")
         assert result.provider == "ollama_vision"
         assert result.latex == "y = x^2 - 4x + 3"
-        assert result.expression == "x**2 - 4*x + 3"
+        assert result.expression == "y = x**2 - 4*x + 3"
         assert result.confidence == pytest.approx(0.91)
 
     def test_khong_ket_noi_duoc(self) -> None:
@@ -138,7 +155,7 @@ class TestPix2TextProvider:
         provider = Pix2TextProvider(url="http://p2t:8503", http_client=client)
         result = provider.recognize(image_base64="QUJD")
         assert result.provider == "pix2text"
-        assert result.expression == "x**2 - 4x + 3"
+        assert result.expression == "y = x**2 - 4x + 3"
         assert result.confidence == pytest.approx(0.9)
 
     def test_recognize_results_la_chuoi(self) -> None:
@@ -149,7 +166,20 @@ class TestPix2TextProvider:
         provider = Pix2TextProvider(url="http://p2t:8503", http_client=client)
         result = provider.recognize(image_base64="QUJD")
         assert result.provider == "pix2text"
-        assert result.expression == "x**2 - 4x + 3"
+        assert result.expression == "y = x**2 - 4x + 3"
+
+    def test_recognize_bao_toan_latex_equation(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={"results": [{"text": r"2u + \frac{3}{1} = 9"}]},
+            )
+
+        client = httpx.Client(transport=httpx.MockTransport(handler))
+        result = Pix2TextProvider(
+            url="http://p2t:8503", http_client=client
+        ).recognize(image_base64="QUJD")
+        assert result.expression == "2u + (3)/(1) = 9"
 
     def test_khong_nhan_dang_duoc(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
@@ -162,6 +192,51 @@ class TestPix2TextProvider:
 
 
 class TestRuleBasedCopilot:
+    def test_linear_dung_ten_bien_nguon_va_phu_thuoc(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="z = 2*t + 1",
+            activity_type="linear_function",
+            math=CopilotMathInput(
+                expression="2*t + 1",
+                source_variable="t",
+                dependent_variable="z",
+                a=2,
+                b=1,
+                root=-0.5,
+                y_intercept=1,
+            ),
+        )
+        result = provider.suggest(request)
+        prose = " ".join(
+            [result.summary, *result.key_points, *result.questions, *result.teaching_steps]
+        )
+        assert "z = 2*t + 1" in prose
+        assert "t = -0.5" in prose
+        assert "x =" not in prose and "y =" not in prose
+
+    def test_khong_doi_nham_khi_bien_nguon_la_y(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="z = 2*y + 1",
+            activity_type="linear_function",
+            math=CopilotMathInput(
+                expression="2*y + 1",
+                source_variable="y",
+                dependent_variable="z",
+                a=2,
+                b=1,
+                root=-0.5,
+                y_intercept=1,
+            ),
+        )
+        result = provider.suggest(request)
+        prose = " ".join(
+            [result.summary, *result.key_points, *result.questions, *result.teaching_steps]
+        )
+        assert "z = 2*y + 1" in prose
+        assert "y = -0.5" in prose
+
     def test_suggest_quadratic(self) -> None:
         provider = RuleBasedCopilotProvider(delay_seconds=0)
         result = provider.suggest(_quadratic_request())
@@ -183,8 +258,133 @@ class TestRuleBasedCopilot:
         assert "đường thẳng" in result.summary
         assert any("(-0.5; 0)" in p for p in result.key_points)
 
+    def test_log_dien_giai_direction_da_xac_minh(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="-log(x, 2)",
+            activity_type="logarithmic_function",
+            math=CopilotMathInput(
+                expression="-log(x)/log(2)",
+                a=-1,
+                base=2,
+                root=1,
+                direction="down",
+                domain="x > 0",
+                asymptotes=["x = 0"],
+            ),
+        )
+        result = provider.suggest(request)
+        assert "nghịch biến" in result.summary
+        assert not any("b > 1 hàm đồng biến" in point for point in result.key_points)
+
+    def test_rational_dien_giai_diem_khuyet_khong_phai_tiem_can_dung(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="(2*x - 2)/(x - 1)",
+            activity_type="rational_function",
+            math=CopilotMathInput(
+                expression="(2*x - 2)/(x - 1)",
+                a=2,
+                b=-2,
+                c=1,
+                d=-1,
+                holes=[1],
+                domain="x ≠ 1",
+                asymptotes=["y = 2"],
+            ),
+        )
+        result = provider.suggest(request)
+        text = " ".join([result.summary, *result.key_points]).lower()
+        assert "điểm khuyết" in text
+        assert "tiệm cận đứng" not in text
+        assert "x = ?" not in result.summary
+        assert "không cắt trục hoành" in result.summary
+
+    def test_exponential_toan_bo_prose_bam_direction_da_xac_minh(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="-2**x",
+            activity_type="exponential_function",
+            math=CopilotMathInput(
+                expression="-2**x",
+                a=-1,
+                base=2,
+                direction="down",
+                y_intercept=-1,
+                asymptotes=["y = 0"],
+            ),
+        )
+        result = provider.suggest(request)
+        prose = " ".join(
+            [result.summary, *result.key_points, *result.questions, *result.teaching_steps]
+        ).lower()
+        assert "nghịch biến" in prose
+        assert "b > 1 hàm đồng biến" not in prose
+        assert "cơ số b lớn hơn 1 hay nhỏ hơn 1? hàm số đồng biến hay nghịch biến?" not in prose
+
+    def test_rational_c_bang_0_chi_noi_asymptote_co_that(self) -> None:
+        provider = RuleBasedCopilotProvider(delay_seconds=0)
+        request = CopilotRequest(
+            expression="(2*x + 1)/3",
+            activity_type="rational_function",
+            math=CopilotMathInput(
+                expression="(2*x + 1)/3",
+                a=2,
+                b=1,
+                c=0,
+                d=3,
+                domain="R",
+                asymptotes=[],
+                root=-0.5,
+                y_intercept=1 / 3,
+            ),
+        )
+        result = provider.suggest(request)
+        prose = " ".join([result.summary, *result.key_points]).lower()
+        assert "a/c" not in prose
+        assert "tiệm cận ngang" not in prose
+        assert "tiệm cận đứng" not in prose
+
 
 class TestOllamaCopilot:
+    def test_prompt_chua_metadata_bien(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            body = json.loads(request.read().decode())
+            prompt = body["messages"][1]["content"]
+            assert '"source_variable": "t"' in prompt
+            assert '"dependent_variable": "z"' in prompt
+            return httpx.Response(
+                200,
+                json={
+                    "message": {
+                        "content": (
+                            '{"summary":"ok","key_points":[],"questions":[],'
+                            '"examples":[],"teaching_steps":[],"confidence":1}'
+                        )
+                    }
+                },
+            )
+
+        provider = OllamaCopilotProvider(
+            url="http://ollama:11434",
+            model="llama3.2",
+            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+        result = provider.suggest(
+            CopilotRequest(
+                expression="z = 2*t + 1",
+                activity_type="linear_function",
+                math=CopilotMathInput(
+                    expression="2*t + 1",
+                    source_variable="t",
+                    dependent_variable="z",
+                    a=2,
+                    b=1,
+                ),
+            )
+        )
+        assert result.provider == "ollama"
+
     def test_suggest_parse_json(self) -> None:
         def handler(request: httpx.Request) -> httpx.Response:
             body = request.read().decode()
@@ -304,3 +504,72 @@ class TestRecognitionDiagnostics:
         assert results[0].available is True
         assert results[1].available is False
         assert results[2].available is False
+
+
+class TestProviderCungCap:
+    """Hoi quy: provider chiu duoc payload la, confidence la, dong client sach."""
+
+    def test_pix2text_ket_qua_rong(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"results": []})
+
+        provider = Pix2TextProvider(
+            url="http://127.0.0.1:1",
+            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+        try:
+            with pytest.raises(RuntimeError, match="không nhận dạng được"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_pix2text_payload_sai_dinh_dang(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"results": ["khong-phai-dict"]})
+
+        provider = Pix2TextProvider(
+            url="http://127.0.0.1:1",
+            http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        )
+        try:
+            with pytest.raises(RuntimeError, match="không đúng định dạng"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_ollama_confidence_chu(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(
+                200,
+                json={
+                    "response": json.dumps(
+                        {"latex": "x+1", "expression": "x+1", "confidence": "cao"}
+                    )
+                },
+            )
+
+        provider = OllamaVisionProvider(
+            http_client=httpx.Client(transport=httpx.MockTransport(handler))
+        )
+        try:
+            with pytest.raises(RuntimeError, match="confidence không hợp lệ"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_ollama_payload_khong_phai_dict(self) -> None:
+        def handler(request: httpx.Request) -> httpx.Response:
+            return httpx.Response(200, json={"response": "[1, 2]"})
+
+        provider = OllamaVisionProvider(
+            http_client=httpx.Client(transport=httpx.MockTransport(handler))
+        )
+        try:
+            with pytest.raises(RuntimeError, match="JSON hợp lệ"):
+                provider.recognize(image_base64="aGVsbG8=")
+        finally:
+            provider.close()
+
+    def test_close_khong_loi(self) -> None:
+        OllamaVisionProvider(url="http://127.0.0.1:1").close()
+        Pix2TextProvider(url="http://127.0.0.1:1").close()

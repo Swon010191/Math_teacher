@@ -16,7 +16,10 @@ class RecognizeResult(BaseModel):
     """Kết quả nhận dạng."""
 
     latex: str = Field(..., description="Công thức dạng LaTeX")
-    expression: str = Field(..., description="Biểu thức chuẩn hóa, ví dụ x**2 - 4*x + 3")
+    expression: str = Field(
+        ...,
+        description="Công thức/phương trình chuẩn hóa, bảo toàn vế trái và dấu bằng",
+    )
     confidence: float = Field(..., ge=0.0, le=1.0, description="Độ tin cậy 0..1")
     provider: str = Field(..., description="Tên provider đã xử lý (mock, ollama_vision, pix2text...)")
     raw: str | None = Field(default=None, description="Kết quả thô của model (nếu có)")

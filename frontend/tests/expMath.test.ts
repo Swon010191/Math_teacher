@@ -3,10 +3,10 @@ import { describe, expect, it } from 'vitest';
 import { expFeatures, formatExp, safeBase } from '../src/features/activities/expMath';
 
 describe('safeBase', () => {
-  it('chống base <= 0 và base = 1', () => {
-    expect(safeBase(0)).toBe(0.1);
-    expect(safeBase(-2)).toBe(0.1);
-    expect(safeBase(1)).toBe(1.01);
+  it('từ chối base <= 0 và base = 1 thay vì thay giá trị', () => {
+    expect(() => safeBase(0)).toThrow();
+    expect(() => safeBase(-2)).toThrow();
+    expect(() => safeBase(1)).toThrow();
     expect(safeBase(2)).toBe(2);
   });
 });
@@ -25,6 +25,15 @@ describe('expFeatures', () => {
     const f = expFeatures({ a: 1, b: 0.5, c: 0 });
     expect(f.direction).toBe('down');
     expect(f.xIntercept).toBeNull();
+  });
+
+  it('hệ số âm đảo chiều biến thiên', () => {
+    expect(expFeatures({ a: -1, b: 2, c: 0 }).direction).toBe('down');
+    expect(expFeatures({ a: -1, b: 0.5, c: 0 }).direction).toBe('up');
+  });
+
+  it('a = 0 là trạng thái suy biến', () => {
+    expect(() => expFeatures({ a: 0, b: 2, c: 1 })).toThrow();
   });
 });
 

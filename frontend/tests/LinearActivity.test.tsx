@@ -50,4 +50,11 @@ describe('LinearActivity', () => {
     expect(screen.getByRole('button', { name: 'Bước trước' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bước tiếp' })).toBeInTheDocument();
   });
+
+  it('hiển thị đúng biến nguồn và biến phụ thuộc', () => {
+    const renamed = { ...activity, math: { ...activity.math, source_variable: 't', dependent_variable: 'z' } };
+    const { container } = render(<LinearActivity activity={renamed} />);
+    expect(container.querySelector('.activity-formula')?.textContent).toContain('z');
+    expect(container.querySelector('.activity-formula')?.textContent).toContain('t');
+  });
 });

@@ -7,11 +7,13 @@ import {
   type FeatureCtx,
 } from './ActivityCanvas';
 import { formatNum } from './quadraticMath';
-import { formatLog, logFeatures, type LogParams } from './logMath';
+import { formatLog, logFeatures, validateLogParams, type LogParams } from './logMath';
 
 const { yellow: YELLOW, purple: PURPLE } = FEATURE_COLORS;
 
 export function LogarithmicActivity({ activity }: { activity: ActivityModel }) {
+  const sourceVariable = activity.math.source_variable ?? 'x';
+  const dependentVariable = activity.math.dependent_variable ?? 'y';
   const initial = useMemo<Record<string, number>>(
     () => ({
       a: activity.math.a ?? 1,
@@ -22,17 +24,21 @@ export function LogarithmicActivity({ activity }: { activity: ActivityModel }) {
   );
 
   const formula = useCallback(
-    (p: Record<string, number>) => formatLog(p as unknown as LogParams),
-    [],
+    (p: Record<string, number>) => formatLog(p as unknown as LogParams, sourceVariable, dependentVariable),
+    [dependentVariable, sourceVariable],
   );
 
   const curve = useCallback((x: number, p: Record<string, number>) => {
     if (x <= 0) return NaN;
     const q = p as unknown as LogParams;
     const { base } = logFeatures(q);
-    const a = q.a === 0 ? 0.0001 : q.a;
-    return (a * Math.log(x)) / Math.log(base) + q.c;
+    return (q.a * Math.log(x)) / Math.log(base) + q.c;
   }, []);
+
+  const validate = useCallback(
+    (p: Record<string, number>) => validateLogParams(p as unknown as LogParams),
+    [],
+  );
 
   const drawFeatures = useCallback((ctx: FeatureCtx) => {
     const { params, revealed } = ctx;
@@ -73,14 +79,14 @@ export function LogarithmicActivity({ activity }: { activity: ActivityModel }) {
     return (
       <>
         {revealed.has('asymptote') && (
-          <span className="stat">Tiệm cận đứng: x = 0</span>
+          <span className="stat">Tiệm cận đứng: {sourceVariable} = 0</span>
         )}
         {revealed.has('root') && (
           <span className="stat">
-            Giao điểm trục x: ({formatNum(f.xIntercept)}, 0)
+            Giao điểm trục {sourceVariable}: ({formatNum(f.xIntercept)}, 0)
           </span>
         )}
-        <span className="stat muted">Tập xác định: {f.domain}</span>
+        <span className="stat muted">Tập xác định: {f.domain.replace(/\bx\b/g, sourceVariable)}</span>
       </>
     );
   };
@@ -91,6 +97,7 @@ export function LogarithmicActivity({ activity }: { activity: ActivityModel }) {
       initial={initial}
       formula={formula}
       curve={curve}
+      validate={validate}
       drawFeatures={drawFeatures}
       stats={stats}
       chips={[

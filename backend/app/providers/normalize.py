@@ -5,6 +5,40 @@ from __future__ import annotations
 import re
 
 
+def _find_matching_paren(text: str, open_index: int) -> int:
+    """Vị trí ngoặc đóng tương ứng với ngoặc mở tại open_index (-1 nếu lẻ)."""
+    depth = 0
+    for index in range(open_index, len(text)):
+        if text[index] == "(":
+            depth += 1
+        elif text[index] == ")":
+            depth -= 1
+            if depth == 0:
+                return index
+    return -1
+
+
+def _replace_latex_log_base(text: str) -> str:
+    """\\log_{10}(...) / \\lg_2(...) -> log(..., base), chịu ngoặc lồng."""
+    pattern = re.compile(r"\\(?:log|lg|ln)\s*_\s*(\{([^{}]*)\}|([A-Za-z0-9]+))?\s*\(")
+    while True:
+        match = pattern.search(text)
+        if not match:
+            break
+        base = match.group(2) if match.group(2) is not None else (match.group(3) or "")
+        open_index = match.end() - 1
+        close_index = _find_matching_paren(text, open_index)
+        if close_index == -1:
+            break
+        inner = text[open_index + 1 : close_index]
+        if not base:
+            replacement = f"log({inner})"
+        else:
+            replacement = f"log({inner},{base})"
+        text = text[: match.start()] + replacement + text[close_index + 1 :]
+    return text
+
+
 def _latex_to_sympy(text: str) -> str:
     """Chuyển LaTeX thô (frac, sqrt, cdot, log_{10}...) sang cú pháp SymPy."""
     # 1. Phân số \frac{n}{d} (kể cả \dfrac, \tfrac) - lặp cho phân số lồng nhau.
@@ -21,12 +55,9 @@ def _latex_to_sympy(text: str) -> str:
         text,
     )
     text = re.sub(r"\\sqrt\s*\{([^{}]*)\}", lambda m: f"sqrt({m.group(1)})", text)
-    # 3. Logarit ghi cơ số: \log_{10}(x), \lg_2(x) -> log(x, base).
-    text = re.sub(
-        r"\\(?:log|lg|ln)\s*_\s*\{?([^{}()]+)\}?\s*\(([^()]*)\)",
-        lambda m: f"log({m.group(2)},{m.group(1)})",
-        text,
-    )
+    # 3. Logarit ghi cơ số: \log_{10}(...), \lg_2(...) -> log(..., base).
+    # Dùng quét ngoặc cân bằng để chịu được biểu thức lồng nhau.
+    text = _replace_latex_log_base(text)
     # 4. Ký hiệu phép toán và nhóm.
     for cmd, repl in (
         (r"\cdot", "*"),
@@ -53,14 +84,46 @@ def _latex_to_sympy(text: str) -> str:
     return re.sub(r"\s+", " ", text).strip()
 
 
+def _strip_function_prefix(expr: str) -> str:
+    """Bỏ vế trái định nghĩa hàm (y = ..., z = ..., f(x) = ..., g(t) = ...)."""
+    identifier = r"[A-Za-z][A-Za-z0-9]*"
+    match = re.match(
+        rf"^(?:{identifier}|{identifier}\(\s*{identifier}\s*\))\s*=\s*(.+)$",
+        expr,
+        re.IGNORECASE,
+    )
+    if match:
+        return match.group(1)
+    return expr
+
+
 def to_expression(text: str) -> str:
     """Chuẩn hóa công thức thô từ model.
 
-    - Bỏ vế trái (y = ..., f(x) = ...) nếu có.
+    - Bỏ vế trái định nghĩa hàm (y = ..., z = ..., f(x) = ...) nếu có.
     - Chuyển LaTeX (\\frac, \\sqrt, \\cdot...) thành cú pháp SymPy.
     """
-    expr = text.strip()
-    match = re.match(r"^(?:y|f\(x\))\s*=\s*(.+)$", expr, re.IGNORECASE)
-    if match:
-        expr = match.group(1)
-    return _latex_to_sympy(expr)
+    return _latex_to_sympy(_strip_function_prefix(text.strip()))
+
+
+def to_problem_expression(text: str) -> str:
+    """Chuẩn hóa công thức/phương trình nhưng bảo toàn vế trái và dấu bằng."""
+    prepared = re.sub(
+        r"\^\{([^{}]*)\}", lambda match: f"**({match.group(1)})", text.strip()
+    )
+    expression = _latex_to_sympy(prepared)
+    for glyph, replacement in (
+        ("·", "*"),
+        ("×", "*"),
+        ("∗", "*"),
+        ("∙", "*"),
+        ("÷", "/"),
+    ):
+        expression = expression.replace(glyph, replacement)
+    superscripts = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
+    expression = re.sub(
+        r"([⁰¹²³⁴⁵⁶⁷⁸⁹]+)",
+        lambda match: "**" + match.group(1).translate(superscripts),
+        expression,
+    )
+    return expression

@@ -3,8 +3,16 @@
 . (Join-Path $PSScriptRoot '_common.ps1')
 
 if (Test-Port -Port $BackendPort) {
-    Write-Host "Backend đã chạy sẵn (port $BackendPort) - không khởi động lại."
-    exit 0
+    # Port bận chưa chắc là backend của mình - kiểm tra /health trước khi bỏ qua.
+    try {
+        $health = Invoke-RestMethod -Uri "http://127.0.0.1:$BackendPort/health" -TimeoutSec 5
+        if ($health.service -eq 'math-engine') {
+            Write-Host "Backend đã chạy sẵn (port $BackendPort) - không khởi động lại."
+            exit 0
+        }
+    } catch {}
+    Write-Host "Port $BackendPort đang bận bởi dịch vụ lạ - hãy đổi port bằng biến môi trường BACKEND_PORT." -ForegroundColor Yellow
+    exit 1
 }
 
 Write-Host "Đang khởi động backend (uvicorn --reload, port $BackendPort)..."

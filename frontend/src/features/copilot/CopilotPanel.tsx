@@ -59,21 +59,25 @@ export function CopilotPanel({ open, activity, onClose, onApprove }: CopilotPane
       return;
     }
     let alive = true;
+    const controller = new AbortController();
     setLoading(true);
     setError(null);
     setSuggestion(null);
-    suggestCopilot(activity)
+    suggestCopilot(activity, 'THCS', controller.signal)
       .then((s) => {
         if (alive) setSuggestion(s);
       })
       .catch((err) => {
-        if (alive) setError(err instanceof Error ? err.message : 'Lỗi Copilot');
+        // Request cũ bị hủy (đổi provider/đóng panel): bỏ qua để không đè mới.
+        if (!alive) return;
+        setError(err instanceof Error ? err.message : 'Lỗi Copilot');
       })
       .finally(() => {
         if (alive) setLoading(false);
       });
     return () => {
       alive = false;
+      controller.abort();
     };
   }, [open, activity, reloadKey]);
 
@@ -98,7 +102,11 @@ export function CopilotPanel({ open, activity, onClose, onApprove }: CopilotPane
   };
 
   return (
-    <div className="copilot-overlay" onClick={onClose}>
+    <div
+      className="copilot-overlay"
+      onClick={onClose}
+      onKeyDown={(event) => { if (event.key === 'Escape') onClose(); }}
+    >
       <div
         className="copilot-panel"
         role="dialog"

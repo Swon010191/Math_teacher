@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import type { ActivityModel } from '../src/features/activities/activityTypes';
@@ -64,5 +64,17 @@ describe('ExponentialActivity', () => {
     render(<ExponentialActivity activity={activity} />);
     expect(screen.getByRole('button', { name: 'Bước trước' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Bước tiếp' })).toBeInTheDocument();
+  });
+
+  it('chuyển invalid → valid, giữ đúng giá trị slider và facts', () => {
+    const { container } = render(<ExponentialActivity activity={activity} />);
+    const slider = screen.getByRole('slider', { name: 'Hệ số a' });
+    fireEvent.change(slider, { target: { value: '0' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('không hợp lệ');
+    expect(screen.getByText('a = 0')).toBeInTheDocument();
+    expect(container.querySelector('.activity-stats')).not.toBeInTheDocument();
+    fireEvent.change(slider, { target: { value: '1' } });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(container.querySelector('.activity-stats')).toBeInTheDocument();
   });
 });

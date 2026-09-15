@@ -16,6 +16,8 @@ import {
 const { red: RED, yellow: YELLOW, purple: PURPLE } = FEATURE_COLORS;
 
 export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
+  const sourceVariable = activity.math.source_variable ?? 'x';
+  const dependentVariable = activity.math.dependent_variable ?? 'y';
   const initial = useMemo<Record<string, number>>(
     () => ({
       a: activity.math.a ?? 1,
@@ -26,8 +28,8 @@ export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
   );
 
   const formula = useCallback(
-    (p: Record<string, number>) => formatQuadratic(p as unknown as QuadraticParams),
-    [],
+    (p: Record<string, number>) => formatQuadratic(p as unknown as QuadraticParams, sourceVariable, dependentVariable),
+    [dependentVariable, sourceVariable],
   );
 
   const curve = useCallback((x: number, p: Record<string, number>) => {
@@ -96,10 +98,10 @@ export function QuadraticActivity({ activity }: { activity: ActivityModel }) {
             Nghiệm:{' '}
             {roots.length === 0
               ? 'vô nghiệm'
-              : roots.map((r) => `x = ${formatNum(r)}`).join(', ')}
+               : roots.map((r) => `${sourceVariable} = ${formatNum(r)}`).join(', ')}
           </span>
         )}
-        {revealed.has('axis') && <span className="stat">Trục x = {formatNum(h)}</span>}
+        {revealed.has('axis') && <span className="stat">Trục {sourceVariable} = {formatNum(h)}</span>}
         <span className="stat muted">Δ = {formatNum(discriminant)}</span>
       </>
     );

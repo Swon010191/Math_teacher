@@ -6,6 +6,7 @@ Dùng để demo luồng Teacher Copilot mà không cần LLM. Mọi số liệu
 
 from __future__ import annotations
 
+import re
 import time
 
 from app.providers.copilot_base import CopilotProvider
@@ -31,6 +32,61 @@ def _fmt_roots(roots: list[float] | None) -> str:
     return " và ".join(_fmt(r) for r in roots)
 
 
+def _present_text(text: str, request: CopilotRequest) -> str:
+    """Đổi ký hiệu x/y mặc định sang metadata trusted trong mọi prose/formula."""
+    source = request.math.source_variable
+    dependent = request.math.dependent_variable or "y"
+    protected = [
+        request.math.expression,
+        request.math.axis,
+        request.math.domain,
+        *(request.math.asymptotes or []),
+    ]
+    placeholders: dict[str, str] = {}
+    for index, value in enumerate(item for item in protected if item):
+        placeholder = f"@@MATH_FACT_{index}@@"
+        if value in text:
+            text = text.replace(value, placeholder)
+            placeholders[placeholder] = value
+    text = text.replace("ax²", f"a{source}²").replace("bx", f"b{source}")
+    text = re.sub(r"\bax\b", f"a{source}", text)
+    text = re.sub(r"\bx\b", "@@SOURCE_VARIABLE@@", text)
+    text = re.sub(r"\by\b", "@@DEPENDENT_VARIABLE@@", text)
+    text = text.replace("@@SOURCE_VARIABLE@@", source)
+    text = text.replace("@@DEPENDENT_VARIABLE@@", dependent)
+    for placeholder, value in placeholders.items():
+        text = text.replace(placeholder, value)
+    return text
+
+
+def _present_suggestion(
+    suggestion: CopilotSuggestion, request: CopilotRequest
+) -> CopilotSuggestion:
+    return suggestion.model_copy(
+        update={
+            "summary": _present_text(suggestion.summary, request),
+            "key_points": [
+                _present_text(item, request) for item in suggestion.key_points
+            ],
+            "questions": [
+                _present_text(item, request) for item in suggestion.questions
+            ],
+            "examples": [
+                example.model_copy(
+                    update={
+                        "prompt": _present_text(example.prompt, request),
+                        "solution": _present_text(example.solution, request),
+                    }
+                )
+                for example in suggestion.examples
+            ],
+            "teaching_steps": [
+                _present_text(item, request) for item in suggestion.teaching_steps
+            ],
+        }
+    )
+
+
 class RuleBasedCopilotProvider(CopilotProvider):
     """Provider giả lập: sinh nội dung theo quy tắc cho các loại hàm đã hỗ trợ."""
 
@@ -49,7 +105,7 @@ class RuleBasedCopilotProvider(CopilotProvider):
             "logarithmic_function": self._logarithmic,
         }
         handler = handlers.get(request.activity_type, self._quadratic)
-        return handler(request)
+        return _present_suggestion(handler(request), request)
 
     def _quadratic(self, request: CopilotRequest) -> CopilotSuggestion:
         m = request.math
@@ -154,22 +210,71 @@ class RuleBasedCopilotProvider(CopilotProvider):
         y_int = _fmt(m.y_intercept)
         domain = m.domain or "?"
         asymptote_text = ", ".join(asymptotes) if asymptotes else "không có"
+        holes = m.holes or []
+        dependent = m.dependent_variable or "y"
+        vertical_asymptotes = [
+            item for item in asymptotes if item.startswith(f"{m.source_variable} =")
+        ]
+        horizontal_asymptotes = [
+            item for item in asymptotes if item.startswith(f"{dependent} =")
+        ]
+        hole_text = " và ".join(_fmt(value) for value in holes)
+        intercept_text = (
+            f"Hàm số cắt trục hoành tại x = {root}."
+            if m.root is not None
+            else "Hàm số không cắt trục hoành."
+        )
+        if m.y_intercept is not None:
+            intercept_text += f" Hàm số cắt trục tung tại y = {y_int}."
+        domain_detail = (
+            f"Hàm số có điểm khuyết tại x = {hole_text}."
+            if holes
+            else (
+                "Hàm số không xác định tại các tiệm cận đứng đã nêu."
+                if vertical_asymptotes
+                else "Không có điểm loại trừ được cung cấp."
+            )
+        )
+        geometry_detail = (
+            "Sau khi triệt tiêu nhân tử, đồ thị là đường cong rút gọn có điểm khuyết."
+            if holes
+            else (
+                "Đồ thị có các nhánh phân thức quanh tiệm cận đứng đã xác minh."
+                if vertical_asymptotes
+                else "Đồ thị được mô tả từ các giao điểm đã xác minh."
+            )
+        )
+        key_points = [f"Tập xác định: {domain}. {domain_detail}"]
+        if vertical_asymptotes:
+            key_points.append(f"tiệm cận đứng: {', '.join(vertical_asymptotes)}.")
+        elif holes:
+            key_points.append(
+                f"Điểm khuyết tại x = {hole_text}; nhân tử mẫu đã được triệt tiêu."
+            )
+        key_points.extend(
+            f"Tiệm cận ngang đã xác minh: {asymptote}."
+            for asymptote in horizontal_asymptotes
+        )
+        key_points.append(geometry_detail)
         return CopilotSuggestion(
             provider=self.name,
             summary=(
                 f"Hàm số phân thức y = {expr} có tập xác định {domain}. "
                 f"Đồ thị có tiệm cận: {asymptote_text}. "
-                f"Hàm số cắt trục hoành tại x = {root} và trục tung tại y = {y_int}."
+                f"{intercept_text}"
             ),
-            key_points=[
-                f"Tập xác định: {domain} (hàm số không xác định tại tiệm cận đứng).",
-                "Đường thẳng x = -d/c là tiệm cận đứng, đồ thị chia thành hai nhánh.",
-                "Đường thẳng y = a/c là tiệm cận ngang: khi |x| rất lớn, đồ thị tiến gần đường này.",
-                "Đồ thị hàm phân thức bậc nhất/bậc nhất là một hyperbol.",
-            ],
+            key_points=key_points,
             questions=[
-                "Tại sao hàm số không xác định tại giá trị của tiệm cận đứng?",
-                "Khi x rất lớn (hoặc rất nhỏ), giá trị của y tiến gần đến số nào?",
+                (
+                    "Vì sao điểm bị loại khỏi tập xác định tạo thành một điểm khuyết?"
+                    if holes
+                    else "Tại sao hàm số không xác định tại giá trị của tiệm cận đứng?"
+                ),
+                (
+                    f"Khi |x| lớn, đồ thị tiến gần {', '.join(horizontal_asymptotes)} như thế nào?"
+                    if horizontal_asymptotes
+                    else "Dựa trên các facts đã cho, hãy mô tả hành vi của đồ thị khi |x| lớn."
+                ),
                 "Đồ thị cắt trục tung và trục hoành tại những điểm nào?",
                 "Nếu đổi dấu hệ số a thì vị trí các nhánh của đồ thị thay đổi thế nào?",
             ],
@@ -180,13 +285,25 @@ class RuleBasedCopilotProvider(CopilotProvider):
                 ),
                 CopilotExample(
                     prompt=f"Giải phương trình y = 0 với y = {expr}.",
-                    solution=f"Nghiệm: x = {root}.",
+                    solution=(
+                        f"Nghiệm: x = {root}."
+                        if m.root is not None
+                        else "Phương trình không có nghiệm trong tập xác định."
+                    ),
                 ),
             ],
             teaching_steps=[
-                "Quan sát đồ thị: nhận xét hình dạng hai nhánh hyperbol.",
+                (
+                    "Quan sát đồ thị rút gọn và xác định điểm khuyết."
+                    if holes
+                    else "Quan sát đồ thị: nhận xét hình dạng hai nhánh hyperbol."
+                ),
                 "Xác định tập xác định của hàm số.",
-                "Xác định tiệm cận đứng và tiệm cận ngang.",
+                (
+                    "Xác định điểm khuyết hoặc các đường tiệm cận từ facts đã cho."
+                    if holes or asymptotes
+                    else "Xác định các giao điểm từ facts đã cho."
+                ),
                 "Tìm nghiệm và giao điểm với trục tung.",
                 "Tổng kết và đặt câu hỏi vận dụng.",
             ],
@@ -253,17 +370,17 @@ class RuleBasedCopilotProvider(CopilotProvider):
         return CopilotSuggestion(
             provider=self.name,
             summary=(
-                f"Hàm số mũ y = {expr} có cơ số b = {base} nên hàm {direction}, "
+                f"Math Engine xác minh hàm số mũ y = {expr} {direction}, với cơ số hiệu dụng b = {base}; "
                 f"đồ thị có tiệm cận ngang {asymptote} và cắt trục tung tại y = {y_int}."
             ),
             key_points=[
-                f"Cơ số b = {base}: b > 1 hàm đồng biến, 0 < b < 1 hàm nghịch biến.",
+                f"Direction đã xác minh: hàm số {direction}; cơ số hiệu dụng b = {base}.",
                 f"Tiệm cận ngang {asymptote}: đồ thị không bao giờ cắt đường này.",
                 f"Đồ thị luôn cắt trục tung tại điểm (0; {y_int}).",
                 root_point,
             ],
             questions=[
-                "Cơ số b lớn hơn 1 hay nhỏ hơn 1? Hàm số đồng biến hay nghịch biến?",
+                f"Hàm đã được xác minh là {direction}; điều này thể hiện thế nào trên đồ thị?",
                 "Đồ thị tiến gần đường thẳng nào khi x rất nhỏ (hoặc rất lớn)?",
                 "Đồ thị cắt trục tung tại điểm nào?",
                 "Nếu thay đổi hệ số c thì tiệm cận ngang dịch chuyển thế nào?",
@@ -295,14 +412,15 @@ class RuleBasedCopilotProvider(CopilotProvider):
         root = _fmt(m.root)
         domain = m.domain or "?"
         asymptote = (m.asymptotes or ["?"])[0]
+        direction = "đồng biến" if m.direction == "up" else "nghịch biến"
         return CopilotSuggestion(
             provider=self.name,
             summary=(
-                f"Hàm số logarit y = {expr} có cơ số b = {base}, tập xác định {domain}, "
+                f"Hàm số logarit y = {expr} có cơ số b = {base} và {direction}, tập xác định {domain}, "
                 f"tiệm cận đứng {asymptote} và cắt trục hoành tại x = {root}."
             ),
             key_points=[
-                f"Cơ số b = {base}: b > 1 hàm đồng biến, 0 < b < 1 hàm nghịch biến.",
+                f"Theo hệ số a và cơ số b = {base}, hàm số {direction}.",
                 f"Tập xác định {domain}: logarit chỉ xác định với giá trị dương.",
                 f"Tiệm cận đứng {asymptote}: đồ thị tiến gần nhưng không cắt đường này.",
                 f"Đồ thị luôn cắt trục hoành tại điểm ({root}; 0).",
