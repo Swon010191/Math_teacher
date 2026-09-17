@@ -2,7 +2,9 @@
 ; Build: packaging\build.ps1 (tu dong nap backend + frontend + launcher)
 
 #define MyAppName "AI Teaching Assistant"
-#define MyAppVersion "1.0.0"
+#ifndef MyAppVersion
+  #define MyAppVersion "1.0.0"
+#endif
 #define MyAppPublisher "AI Teaching Assistant (Open Source)"
 #define MyAppURL "https://github.com/Swon010191/Math_teacher"
 #define MyAppExeName "AI-Teaching-Assistant.exe"

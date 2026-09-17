@@ -47,11 +47,20 @@ export function RecognitionModal({
   if (!open) return null;
 
   const previewHtml = (() => {
-    // Chuyển cú pháp Python (x**2) sang LaTeX (x^2) chỉ để xem trước;
-    // giá trị gửi backend vẫn giữ nguyên.
-    const previewSource = (value || '\\text{(trống)}').replace(/\*\*/g, '^');
+    // Dùng bản LaTeX thô nếu có, fallback sang value; render với throwOnError:false để chịu \matrix, \int...
+    const candidates = [value, latex].filter(Boolean) as string[];
+    for (const src of candidates) {
+      try {
+        // Thử render trực tiếp; nếu src là SymPy (x**2) thì thay **->^
+        const previewSource = src.replace(/\*\*/g, '^');
+        const html = katex.renderToString(previewSource, { throwOnError: true });
+        if (html) return html;
+      } catch {
+        // thử candidate tiếp
+      }
+    }
     try {
-      return katex.renderToString(previewSource, { throwOnError: true });
+      return katex.renderToString(value.replace(/\*\*/g, '^'), { throwOnError: false });
     } catch {
       return katex.renderToString('\\text{Không xem trước được biểu thức này}', { throwOnError: false });
     }
@@ -59,7 +68,7 @@ export function RecognitionModal({
 
   const latexHtml = (() => {
     try {
-      return katex.renderToString(latex, { throwOnError: true });
+      return katex.renderToString(latex, { throwOnError: false });
     } catch {
       return null;
     }

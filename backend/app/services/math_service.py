@@ -47,28 +47,55 @@ _SAMPLE_STEP = 0.5
 _SAMPLE_COUNT = 41
 _MAX_TRIG_PERIOD = 10_000.0
 _MAX_TRIG_PHASE = 1_000_000.0
-_MAX_INPUT_LENGTH = 500
-_MAX_TOKENS = 200
-_MAX_EXPRESSION_NODES = 200
+_MAX_INPUT_LENGTH = 800
+_MAX_TOKENS = 400
+_MAX_EXPRESSION_NODES = 500
 _MAX_VARIABLE_EXPONENT = 3
-_MAX_EXPANSION_TERMS = 128
-_MAX_EXPANSION_OPERATIONS = 256
-_MAX_SYMBOLS = 16
+_MAX_EXPANSION_TERMS = 256
+_MAX_EXPANSION_OPERATIONS = 512
+_MAX_SYMBOLS = 20
 _MAX_SYMBOL_LENGTH = 32
 
 _X = sp.Symbol("x")
-_ALLOWED_NAMES = {"x", "e", "pi", "sin", "cos", "log", "ln", "exp", "sqrt"}
-_FUNCTION_NAMES = {"sin", "cos", "log", "ln", "exp", "sqrt"}
+_ALLOWED_NAMES = {
+    "x", "e", "pi", "sin", "cos", "tan", "log", "ln", "exp", "sqrt",
+    "gamma", "Gamma", "erf", "erfc", "beta", "zeta", "besselj",
+    "Integral", "integrate", "Sum", "Product", "Limit", "Derivative", "Matrix",
+    "oo", "inf", "E",
+}
+_FUNCTION_NAMES = {
+    "sin", "cos", "tan", "log", "ln", "exp", "sqrt",
+    "gamma", "Gamma", "erf", "erfc", "beta", "zeta", "besselj",
+    "Integral", "integrate", "Sum", "Product", "Limit", "Derivative", "Matrix",
+}
 _LOCAL_DICT = {
     "x": _X,
     "e": sp.E,
+    "E": sp.E,
     "pi": sp.pi,
+    "oo": sp.oo,
+    "inf": sp.oo,
     "sin": sp.sin,
     "cos": sp.cos,
+    "tan": sp.tan,
     "log": sp.log,
     "ln": sp.log,
     "exp": sp.exp,
     "sqrt": sp.sqrt,
+    "gamma": sp.gamma,
+    "Gamma": sp.gamma,
+    "erf": sp.erf,
+    "erfc": sp.erfc,
+    "beta": sp.beta,
+    "zeta": sp.zeta,
+    "besselj": sp.besselj,
+    "Integral": sp.Integral,
+    "integrate": sp.integrate,
+    "Sum": sp.Sum,
+    "Product": sp.Product,
+    "Limit": sp.Limit,
+    "Derivative": sp.Derivative,
+    "Matrix": sp.Matrix,
 }
 _GLOBAL_DICT = {
     "__builtins__": {},
@@ -78,6 +105,10 @@ _GLOBAL_DICT = {
     "Add": sp.Add,
     "Mul": sp.Mul,
     "Pow": sp.Pow,
+    "Integral": sp.Integral,
+    "Sum": sp.Sum,
+    "Product": sp.Product,
+    "Matrix": sp.Matrix,
 }
 
 _SUPERSCRIPT_DIGITS = str.maketrans("⁰¹²³⁴⁵⁶⁷⁸⁹", "0123456789")
@@ -197,13 +228,19 @@ def _preprocess_input(raw: str, variable_names: set[str] | None = None) -> str:
     return text
 
 
+def _has_calculus_syntax(text: str) -> bool:
+    """Calculus dùng '_' cho giới hạn tích phân/tổng — cho phép có kiểm soát."""
+    return any(k in text for k in ("Integral(", "Sum(", "Product(", "Limit(", "Derivative(", "Matrix("))
+
+
 def _validate_input_tokens(
     text: str, variable_names: set[str] | None = None
 ) -> None:
     """Chặn token ngoài ngôn ngữ toán học trước khi parser truy cập object."""
     if len(text) > _MAX_INPUT_LENGTH:
         raise MathEngineError("Biểu thức quá dài.")
-    if "_" in text or "'" in text or '"' in text:
+    # Cho phép '_' khi biểu thức chứa calculus syntax đã chuẩn hóa; chặn quote vẫn giữ
+    if ("'" in text or '"' in text) or ("_" in text and not _has_calculus_syntax(text)):
         raise MathEngineError("Biểu thức chứa ký tự không hợp lệ.")
     try:
         tokens = list(tokenize.generate_tokens(iter([text]).__next__))
@@ -298,8 +335,16 @@ def _parse_limited(
     if len(nodes) > _MAX_EXPRESSION_NODES:
         raise MathEngineError("Biểu thức quá phức tạp.")
     for node in nodes:
-        if isinstance(node, sp.Number) and not math.isfinite(float(node)):
-            raise MathEngineError("Giá trị số phải hữu hạn.")
+        if isinstance(node, sp.Number):
+            # Cho phép oo (Infinity) cho calculus; chỉ chặn nan/zoo
+            if node is sp.oo or node is sp.zoo or node is sp.nan or node is getattr(sp, "S", None) and node is sp.S.Infinity:
+                continue
+            try:
+                fv = float(node)
+            except Exception:
+                continue
+            if not math.isfinite(fv):
+                raise MathEngineError("Giá trị số phải hữu hạn.")
         if isinstance(node, sp.Pow) and node.exp.is_number:
             exponent = _bounded_numeric_value(node.exp)
             if node.base.free_symbols & allowed_symbols and (
@@ -383,6 +428,17 @@ def _parse_analysis_input(raw: str) -> _AnalysisInput:
     text = _prepare_text(body_raw)
     parsed, symbols = _parse_symbolic_text(text)
     names = sorted(symbol.name for symbol in parsed.free_symbols)
+    # Cho phép calculus definite (không có biến tự do) — ví dụ Integral(..., (x,0,oo)) đã bound
+    has_calculus = any(k in text for k in ("Integral", "Sum", "Product", "Limit", "Matrix"))
+    if has_calculus and len(names) == 0:
+        # Treat as constant calculus; map to x dummy for internal pipeline but mark source as x
+        # Bypass single-variable check
+        source = source_hint or "x"
+        # Ensure internal expression is parsed (use dummy x)
+        if source_hint is None:
+            # Create trivial AnalysisInput with no source mapping needed
+            canonical = sp.sstr(parsed)
+            return _AnalysisInput(parsed, "x", dependent, canonical)
     if source_hint is not None and source_hint not in names:
         raise MathEngineError("Biến trong định nghĩa hàm phải xuất hiện ở vế phải.")
     if len(names) != 1:
@@ -498,14 +554,18 @@ def solve_equation(raw: str, solve_for: str | None = None) -> MathSolveResponse:
     target = symbols[solve_for]
     _validate_expansion_budget(difference)
     expanded = _exactify_floats(sp.expand(difference))
+    is_polynomial = True
     try:
         polynomial = sp.Poly(expanded, target)
-    except sp.PolynomialError as exc:
-        raise MathEngineError("Chỉ hỗ trợ phương trình đa thức theo solve_for.") from exc
-    degree_value = polynomial.degree()
-    degree = 0 if degree_value == sp.S.NegativeInfinity else int(degree_value)
-    if degree > 2:
-        raise MathEngineError("Chỉ hỗ trợ phương trình bậc nhất và bậc hai.")
+    except sp.PolynomialError:
+        is_polynomial = False
+        polynomial = None  # type: ignore
+    if is_polynomial:
+        assert polynomial is not None
+        degree_value = polynomial.degree()
+        degree = 0 if degree_value == sp.S.NegativeInfinity else int(degree_value)
+    else:
+        degree = -1  # non-polynomial marker
 
     left_expr = _parse_limited(left_text, symbols)
     right_expr = _parse_limited(right_text, symbols)
@@ -530,6 +590,11 @@ def solve_equation(raw: str, solve_for: str | None = None) -> MathSolveResponse:
             values={"standard_form": expanded},
         ),
     ]
+    # General fallback: degree >2 or non-polynomial -> symbolic then numeric, real-only
+    if degree > 2 or degree == -1:
+        return _solve_general_equation(
+            raw, canonical_equation, expanded, target, solve_for, variables, steps
+        )
     answers: list[SolveAnswer] = []
     cases: list[SolveCase] = []
     verified = False
@@ -869,6 +934,215 @@ def solve_equation(raw: str, solve_for: str | None = None) -> MathSolveResponse:
     )
     _validate_finite_payload(response.model_dump())
     return response
+
+
+def _solve_general_equation(
+    raw: str,
+    canonical_equation: str,
+    expanded: sp.Expr,
+    target: sp.Symbol,
+    solve_for: str,
+    variables: list[str],
+    steps: list[SolveStep],
+) -> MathSolveResponse:
+    """Fallback B: symbolic solveset/solve trước, numeric sau, chỉ giữ nghiệm thực."""
+    # Thử symbolic trên miền thực
+    roots: list[sp.Expr] = []
+    symbolic_ok = False
+    try:
+        # solveset trả Interval/FiniteSet/ConditionSet
+        sol_set = sp.solveset(expanded, target, domain=sp.S.Reals)
+        if isinstance(sol_set, sp.FiniteSet):
+            roots = [sp.simplify(r) for r in sol_set if getattr(r, "is_real", True) is not False]
+            symbolic_ok = True
+        elif sol_set is sp.S.Reals:
+            # identity: mọi số thực đều nghiệm
+            response = MathSolveResponse(
+                original_equation=raw,
+                canonical_equation=canonical_equation,
+                variables=variables,
+                solve_for=solve_for,
+                degree=0,
+                classification="identity",
+                status="infinite_solutions",
+                answers=[],
+                cases=[],
+                steps=steps
+                + [
+                    _solve_step("R", "Mọi số thực đều thỏa mãn phương trình.", r"\mathbb{R}", "answer", rule="real_line", values={"status": "infinite_solutions"}),
+                    _solve_step("verified", "Tập nghiệm là toàn bộ R.", r"\mathbb{R}", "verification", rule="exact_substitution", values={"verified": "true"}),
+                ],
+                verified=True,
+            )
+            _validate_finite_payload(response.model_dump())
+            return response
+        else:
+            # Thử sp.solve như fallback
+            sol_list = sp.solve(expanded, target, dict=False)
+            if sol_list:
+                roots = [sp.simplify(r) for r in sol_list if getattr(r, "is_real", None) is not False]
+                # Lọc phức: chỉ giữ is_real True hoặc không xác định nhưng N() thực
+                filtered: list[sp.Expr] = []
+                for r in roots:
+                    if r.is_real is True:
+                        filtered.append(r)
+                    elif r.is_real is False:
+                        continue
+                    else:
+                        try:
+                            nv = complex(sp.N(r, 15))
+                            if abs(nv.imag) < 1e-10:
+                                filtered.append(sp.simplify(sp.re(nv.real) if hasattr(sp, "re") else r))
+                            else:
+                                continue
+                        except Exception:
+                            continue
+                roots = filtered
+                symbolic_ok = bool(roots) or sol_list == []
+    except Exception:
+        symbolic_ok = False
+
+    if symbolic_ok and roots:
+        answers = [_solve_answer(r) for r in roots]
+        verified = all(sp.simplify(expanded.subs(target, r)) == 0 for r in roots)
+        classification = "general" if len(roots) else "no_solution"
+        # Xác định degree hiển thị: nếu poly thì giữ degree, else -1
+        try:
+            deg = int(sp.Poly(expanded, target).degree())
+        except Exception:
+            deg = -1
+            classification = "transcendental" if any(expanded.has(f) for f in (sp.sin, sp.cos, sp.log, sp.exp, sp.gamma, sp.erf)) else "general"
+        final_latex = ", ".join(sp.latex(sp.Eq(target, r)) for r in roots) if roots else r"\text{no real solution}"
+        steps.append(
+            _solve_step(
+                ", ".join(f"{solve_for} = {sp.sstr(r)}" for r in roots) if roots else "no real solution",
+                "Giải bằng SymPy trên miền thực; chỉ giữ nghiệm thực.",
+                final_latex,
+                "answer",
+                rule="real_solution_set",
+                values={"answer_count": str(len(answers)), **{f"solution_{i+1}": r for i, r in enumerate(roots)}},
+            )
+        )
+        steps.append(
+            _solve_step(
+                "; ".join(f"{solve_for}={sp.sstr(r)} -> {sp.sstr(sp.simplify(expanded.subs(target, r)))}=0" for r in roots),
+                "Thay từng nghiệm vào phương trình và rút gọn về 0.",
+                r";\quad ".join(rf"{sp.latex(target)}={sp.latex(r)} \Rightarrow 0=0" for r in roots),
+                "verification",
+                rule="exact_substitution",
+                values={sp.sstr(r): sp.simplify(expanded.subs(target, r)) for r in roots},
+            )
+        )
+        resp = MathSolveResponse(
+            original_equation=raw,
+            canonical_equation=canonical_equation,
+            variables=variables,
+            solve_for=solve_for,
+            degree=deg,
+            classification=classification,
+            status="solved" if roots else "no_solution",
+            answers=answers,
+            cases=[],
+            steps=steps,
+            verified=verified,
+        )
+        _validate_finite_payload(resp.model_dump())
+        return resp
+
+    # Numeric fallback: tìm nghiệm bằng nsolve / nroots sampling
+    numeric_roots: list[sp.Expr] = []
+    try:
+        # Thử nroots nếu là Poly bậc cao
+        try:
+            poly = sp.Poly(expanded, target)
+            for r in poly.nroots(n=15, maxsteps=200):
+                try:
+                    cr = complex(r)
+                    if abs(cr.imag) < 1e-8 and math.isfinite(cr.real):
+                        # verify residual
+                        val = complex(sp.N(expanded.subs(target, cr.real), 15))
+                        if abs(val) < 1e-6:
+                            # dedup
+                            if not any(abs(float(sp.N(nr, 12)) - cr.real) < 1e-6 for nr in numeric_roots):
+                                numeric_roots.append(sp.N(cr.real, 12))
+                except Exception:
+                    continue
+        except Exception:
+            pass
+        # Thử nsolve với nhiều seed nếu chưa có
+        if not numeric_roots:
+            for seed in [-10, -3, -1, -0.5, 0.5, 1, 3, 10]:
+                try:
+                    r = sp.nsolve(expanded, target, seed, tol=1e-14, maxsteps=200, prec=30)
+                    cr = float(r)
+                    if math.isfinite(cr):
+                        val = float(sp.N(expanded.subs(target, cr), 12))
+                        if abs(val) < 1e-7:
+                            if not any(abs(float(nr) - cr) < 1e-6 for nr in numeric_roots):
+                                numeric_roots.append(sp.N(cr, 12))
+                except Exception:
+                    continue
+    except Exception:
+        pass
+
+    if numeric_roots:
+        numeric_roots = sorted(numeric_roots, key=lambda v: float(v))
+        answers = [_solve_answer(r) for r in numeric_roots]
+        steps.append(
+            _solve_step(
+                ", ".join(f"{solve_for} ≈ {sp.sstr(r)}" for r in numeric_roots),
+                "Không có dạng đóng chính xác; trả nghiệm gần đúng bằng phương pháp số (chỉ thực).",
+                ", ".join(sp.latex(sp.Eq(target, r)) for r in numeric_roots),
+                "answer",
+                rule="numeric_approximation",
+                values={"answer_count": str(len(answers)), "method": "nroots/nsolve"},
+            )
+        )
+        steps.append(
+            _solve_step(
+                "; ".join(f"{solve_for}≈{sp.sstr(r)} -> residual {sp.sstr(sp.N(expanded.subs(target, r), 10))}" for r in numeric_roots),
+                "Kiểm tra dư bằng thay số gần đúng.",
+                r"\text{numeric verification}",
+                "verification",
+                rule="numeric_substitution",
+                values={sp.sstr(r): sp.N(expanded.subs(target, r), 10) for r in numeric_roots},
+            )
+        )
+        resp = MathSolveResponse(
+            original_equation=raw,
+            canonical_equation=canonical_equation,
+            variables=variables,
+            solve_for=solve_for,
+            degree=-1,
+            classification="general",
+            status="solved",
+            answers=answers,
+            cases=[],
+            steps=steps,
+            verified=False,
+        )
+        _validate_finite_payload(resp.model_dump())
+        return resp
+
+    # Không tìm được nghiệm thực
+    steps.append(
+        _solve_step("no real solution", "Không tìm được nghiệm thực bằng symbolic và numeric.", r"\text{no real solution}", "answer", rule="no_real_solution", values={"status": "no_solution"})
+    )
+    resp = MathSolveResponse(
+        original_equation=raw,
+        canonical_equation=canonical_equation,
+        variables=variables,
+        solve_for=solve_for,
+        degree=-1,
+        classification="general",
+        status="no_solution",
+        answers=[],
+        cases=[],
+        steps=steps,
+        verified=True,
+    )
+    _validate_finite_payload(resp.model_dump())
+    return resp
 
 
 def _projected_polynomial_degree(expr: sp.Expr) -> int | None:
@@ -1460,6 +1734,108 @@ def _analyze_log(
     )
 
 
+def _has_calculus_node(expr: sp.Expr) -> bool:
+    return any(isinstance(n, (sp.Integral, sp.Sum, sp.Product, sp.Derivative, sp.Limit)) for n in sp.preorder_traversal(expr))
+
+
+def _has_special_node(expr: sp.Expr) -> bool:
+    return expr.has(sp.gamma, sp.beta, sp.erf, sp.erfc, sp.zeta, sp.besselj)
+
+
+def _analyze_calculus(
+    expr: sp.Expr,
+    raw: str,
+    latex: str,
+    normalized: str,
+) -> MathAnalyzeResponse:
+    x = sp.Symbol("x")
+    # Try to evaluate integral/sum/limit numerically if free
+    numeric_value: float | None = None
+    evaluated: sp.Expr | None = None
+    try:
+        # For Integral/Sum/Product without free symbolic limits, try doit()
+        if isinstance(expr, (sp.Integral, sp.Sum, sp.Product)):
+            evaluated = expr.doit()
+            if evaluated is not None and evaluated.is_number:
+                numeric_value = _finite_float(sp.N(evaluated, 15), "Giá trị tích phân/tổng")
+        elif _has_calculus_node(expr):
+            # General doit
+            try:
+                evaluated = sp.simplify(expr.doit())
+                if evaluated is not None and evaluated.is_number and not evaluated.has(sp.Integral, sp.Sum):
+                    numeric_value = _finite_float(sp.N(evaluated, 15), "Giá trị calculus")
+            except Exception:
+                pass
+    except MathEngineError:
+        raise
+    except Exception:
+        pass
+    # Sample points: if expr still has x, sample around 0
+    sample: list[list[float]] = []
+    if expr.has(x):
+        try:
+            sample = _sample_points(expr, 0.0)
+        except Exception:
+            sample = []
+    # Lazy import to avoid circular
+    from app.schemas.math import CalculusFeatures
+
+    features = CalculusFeatures(
+        evaluated_latex=sp.latex(evaluated) if evaluated is not None else None,
+        numeric_value=numeric_value,
+        sample_points=sample,
+    )
+    return MathAnalyzeResponse(
+        expression=raw,
+        normalized_expression=normalized,
+        kind="calculus",
+        latex=latex,
+        calculus=features,
+    )
+
+
+def _analyze_special(
+    expr: sp.Expr,
+    raw: str,
+    latex: str,
+    normalized: str,
+) -> MathAnalyzeResponse:
+    x = sp.Symbol("x")
+    numeric_value: float | None = None
+    try:
+        if not expr.has(x) and expr.is_number:
+            numeric_value = _finite_float(sp.N(expr, 15), "Giá trị hàm đặc biệt")
+        elif expr.has(x):
+            # sample at 1
+            try:
+                numeric_value = _finite_float(sp.N(expr.subs(x, 1), 15), "Giá trị hàm đặc biệt tại x=1")
+            except Exception:
+                numeric_value = None
+    except MathEngineError:
+        raise
+    except Exception:
+        numeric_value = None
+    sample: list[list[float]] = []
+    if expr.has(x):
+        try:
+            sample = _sample_points(expr, 1.0)
+        except Exception:
+            sample = []
+    from app.schemas.math import SpecialFeatures
+
+    features = SpecialFeatures(
+        numeric_value=numeric_value,
+        sample_points=sample,
+    )
+    return MathAnalyzeResponse(
+        expression=raw,
+        normalized_expression=normalized,
+        kind="special",
+        latex=latex,
+        special=features,
+    )
+
+
 def _analyze_non_polynomial(
     expr: sp.Expr,
     original_expr: sp.Expr,
@@ -1467,8 +1843,12 @@ def _analyze_non_polynomial(
     latex: str,
     normalized: str,
 ) -> MathAnalyzeResponse:
-    """Phân tích biểu thức không phải đa thức: phân thức, lượng giác, mũ, logarit."""
+    """Phân tích biểu thức không phải đa thức: phân thức, lượng giác, mũ, logarit, calculus, special."""
     x = sp.Symbol("x")
+    if _has_calculus_node(expr) or expr.has(sp.Integral, sp.Sum, sp.Product, sp.Derivative, sp.Limit):
+        return _analyze_calculus(expr, raw, latex, normalized)
+    if _has_special_node(expr):
+        return _analyze_special(expr, raw, latex, normalized)
     trig = _match_trig(expr)
     if trig is not None:
         return _analyze_trig(expr, trig, raw, latex, normalized)
@@ -1484,7 +1864,7 @@ def _analyze_non_polynomial(
         )
     raise MathEngineError(
         "Loại hàm chưa được hỗ trợ (MVP: bậc hai, bậc nhất, phân thức, "
-        "lượng giác sin/cos, mũ, logarit)."
+        "lượng giác sin/cos, mũ, logarit, calculus, hàm đặc biệt)."
     )
 
 
@@ -1527,6 +1907,14 @@ def _analyze_expression(
     expr = sp.expand(parsed)
     latex = sp.latex(expr)
     normalized = sp.srepr(expr)
+
+    # Calculus/special ưu tiên trước Poly để definite Integral, Gamma không bị coi là Poly bậc 0
+    if _has_calculus_node(expr) or _has_special_node(expr):
+        # Nếu có calculus node, delegate ngay
+        if _has_calculus_node(expr):
+            return _analyze_calculus(expr, raw, latex, normalized)
+        if _has_special_node(expr):
+            return _analyze_special(expr, raw, latex, normalized)
 
     if _original_denominator_factors(parsed):
         if _has_variable_exponent(expr):

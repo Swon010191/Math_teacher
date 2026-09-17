@@ -19,7 +19,7 @@ def build_activity(
     confidence: float,
     confirmed: bool = True,
 ) -> ActivityModel:
-    """Tạo Activity theo loại biểu thức (bậc hai, bậc nhất, phân thức, lượng giác, mũ, logarit)."""
+    """Tạo Activity theo loại biểu thức (bậc hai, bậc nhất, phân thức, lượng giác, mũ, logarit, calculus, special)."""
     analysis = analyze_expression(expression)
     if analysis.kind == "quadratic":
         return build_quadratic_activity(latex, expression, confidence, confirmed, analysis)
@@ -33,7 +33,9 @@ def build_activity(
         return build_exponential_activity(latex, expression, confidence, confirmed, analysis)
     if analysis.kind == "logarithmic":
         return build_logarithmic_activity(latex, expression, confidence, confirmed, analysis)
-    raise ValueError("MVP hỗ trợ hàm bậc hai, bậc nhất, phân thức, lượng giác sin/cos, mũ và logarit.")
+    if analysis.kind in ("calculus", "special"):
+        return build_generic_activity(latex, expression, confidence, confirmed, analysis)
+    raise ValueError("MVP hỗ trợ hàm bậc hai, bậc nhất, phân thức, lượng giác sin/cos, mũ, logarit, calculus và hàm đặc biệt.")
 
 
 def build_linear_activity(
@@ -285,5 +287,36 @@ def build_logarithmic_activity(
             ActivityStep(visible=["graph"]),
             ActivityStep(visible=["graph", "asymptote"]),
             ActivityStep(visible=["graph", "asymptote", "root"]),
+        ],
+    )
+
+
+def build_generic_activity(
+    latex: str,
+    expression: str,
+    confidence: float,
+    confirmed: bool = True,
+    analysis: MathAnalyzeResponse | None = None,
+) -> ActivityModel:
+    """Tạo Activity cho calculus/special — graph + LaTeX giá trị."""
+    analysis = analysis or analyze_expression(expression)
+    if analysis.kind not in ("calculus", "special") or (analysis.calculus is None and analysis.special is None):
+        raise ValueError("Activity generic yêu cầu calculus/special hợp lệ.")
+    return ActivityModel(
+        schemaVersion="1.0",
+        type="generic_function" if analysis.kind == "calculus" else "special_function",
+        source=ActivitySource(latex=latex, confidence=confidence, confirmed=confirmed),
+        math=ActivityMath(
+            expression=analysis.canonical_expression or analysis.normalized_expression,
+            source_variable=analysis.source_variable,
+            dependent_variable=analysis.dependent_variable,
+        ),
+        widgets=[
+            ActivityWidget(type="graph"),
+            ActivityWidget(type="formula"),
+        ],
+        steps=[
+            ActivityStep(visible=["graph"]),
+            ActivityStep(visible=["graph", "formula"]),
         ],
     )

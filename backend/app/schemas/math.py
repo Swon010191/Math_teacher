@@ -142,6 +142,21 @@ class LogarithmicFeatures(BaseModel):
     sample_points: list[list[float]]
 
 
+class CalculusFeatures(BaseModel):
+    """Đặc trưng calculus: tích phân, tổng, giới hạn, đạo hàm."""
+
+    evaluated_latex: str | None = Field(default=None, description="Dạng đã tính nếu có")
+    numeric_value: float | None = Field(default=None, description="Giá trị số nếu khả tính")
+    sample_points: list[list[float]] = Field(default_factory=list)
+
+
+class SpecialFeatures(BaseModel):
+    """Đặc trưng hàm đặc biệt: Gamma, erf, beta, zeta, bessel."""
+
+    numeric_value: float | None = Field(default=None)
+    sample_points: list[list[float]] = Field(default_factory=list)
+
+
 class MathAnalyzeResponse(BaseModel):
     """Kết quả phân tích biểu thức."""
 
@@ -149,7 +164,7 @@ class MathAnalyzeResponse(BaseModel):
     normalized_expression: str = Field(..., description="Biểu thức đã chuẩn hóa (SymPy)")
     kind: str = Field(
         ...,
-        description="Loại: quadratic | linear | rational | trigonometric | exponential | logarithmic | unknown",
+        description="Loại: quadratic | linear | rational | trigonometric | exponential | logarithmic | calculus | special | unknown",
     )
     latex: str = Field(..., description="Biểu diễn LaTeX")
     canonical_expression: str | None = Field(
@@ -165,3 +180,5 @@ class MathAnalyzeResponse(BaseModel):
     trigonometric: TrigFeatures | None = None
     exponential: ExponentialFeatures | None = None
     logarithmic: LogarithmicFeatures | None = None
+    calculus: CalculusFeatures | None = None
+    special: SpecialFeatures | None = None

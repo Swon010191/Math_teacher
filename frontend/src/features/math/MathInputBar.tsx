@@ -5,6 +5,17 @@ interface MathInputBarProps {
   onSubmit: (expression: string) => void;
 }
 
+const LATEX_SNIPPETS: { label: string; insert: string; title: string }[] = [
+  { label: '½', insert: '\\frac{}{}', title: 'Phân số \\frac{}{}' },
+  { label: '√', insert: '\\sqrt{}', title: 'Căn \\sqrt{}' },
+  { label: '∫', insert: 'Integral(exp(-x**2), (x, 0, oo))', title: 'Tích phân (ví dụ Gauss)' },
+  { label: '∑', insert: 'Sum(1/x**2, (x, 1, oo))', title: 'Tổng Sum' },
+  { label: 'Γ', insert: 'gamma(x)', title: 'Gamma gamma()' },
+  { label: 'erf', insert: 'erf(x)', title: 'erf(x)' },
+  { label: '∞', insert: 'oo', title: 'Vô cùng oo' },
+  { label: 'π', insert: 'pi', title: 'pi' },
+];
+
 /** Ô nhập công thức bằng bàn phím - phương án dự phòng khi Recognition không có. */
 export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
   const [value, setValue] = useState('');
@@ -22,6 +33,10 @@ export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
     }
   };
 
+  const insertSnippet = (snippet: string) => {
+    setValue((prev) => (prev ? `${prev} ${snippet}` : snippet));
+  };
+
   return (
     <div className="math-input-bar" role="dialog" aria-label="Nhập công thức">
       <label className="math-input-prefix" htmlFor="typed-math-input">Công thức</label>
@@ -37,6 +52,13 @@ export function MathInputBar({ onCancel, onSubmit }: MathInputBarProps) {
         placeholder="z=2t+1 hoặc 2u+3=9"
         autoFocus
       />
+      <div className="math-toolbar-snippets" role="group" aria-label="Chèn nhanh LaTeX">
+        {LATEX_SNIPPETS.map((s) => (
+          <button key={s.label} type="button" className="btn btn-ghost snippet-btn" title={s.title} onClick={() => insertSnippet(s.insert)}>
+            {s.label}
+          </button>
+        ))}
+      </div>
       <button className="btn btn-primary" onClick={() => void handleSubmit()} disabled={busy}>
         {busy ? 'Đang phân tích...' : 'Phân tích'}
       </button>

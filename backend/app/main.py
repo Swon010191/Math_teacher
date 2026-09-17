@@ -24,7 +24,7 @@ app = FastAPI(
         "Nguồn sự thật toán học (SymPy) + Recognition cho AI Teaching Assistant. "
         "Math Core luôn hoạt động, không phụ thuộc Generative AI."
     ),
-    version="0.1.0",
+    version="1.0.0",
 )
 
 

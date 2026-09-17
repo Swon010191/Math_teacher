@@ -511,13 +511,17 @@ class TestMathSolve:
         "payload",
         [
             {"expression": "x+y=2"},
-            {"expression": "u^3=1"},
             {"expression": "__import__('os').system('echo unsafe')"},
         ],
     )
     def test_solve_loi_tra_400(self, client: TestClient, payload: dict) -> None:
         response = client.post("/api/math/solve", json=payload)
         assert response.status_code == 400
+
+    def test_solve_bac_ba_khong_con_400(self, client: TestClient) -> None:
+        response = client.post("/api/math/solve", json={"expression": "u^3=1"})
+        assert response.status_code == 200
+        assert any(a["exact"] == "1" for a in response.json()["answers"])
 
     def test_solve_nhieu_bien_co_solve_for(self, client: TestClient) -> None:
         response = client.post(

@@ -331,8 +331,10 @@ class TestSolveEquation:
             solve_equation(expression)
 
     def test_bac_lon_hon_hai(self) -> None:
-        with pytest.raises(MathEngineError, match="bậc nhất và bậc hai"):
-            solve_equation("u^3 - 1 = 0")
+        # Sau fallback B, bậc 3 được giải bằng symbolic/numeric, chỉ giữ nghiệm thực
+        result = solve_equation("u^3 - 1 = 0")
+        assert result.status == "solved"
+        assert any(a.exact == "1" for a in result.answers)
 
 
 class TestAnalyzeRational:

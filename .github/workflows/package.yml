@@ -31,8 +31,8 @@ jobs:
         run: |
           cd backend
           python -m venv .venv
-          .\.venv\Scripts\python -m pip install -U pip pyinstaller pystray pillow
-          .\.venv\Scripts\python -m pip install -r requirements.txt
+          .\.venv\Scripts\python -m pip install -U pip
+          .\.venv\Scripts\python -m pip install -r requirements.lock
           cd ..\frontend
           npm ci
           npm run build
@@ -55,34 +55,43 @@ jobs:
       - name: Compile Setup.exe
         working-directory: packaging
         run: |
+          $Version = if ($env:GITHUB_REF_NAME -match '^v(\d+\.\d+\.\d+(?:[-+].*)?)$') { $Matches[1] } else { '1.0.0' }
           New-Item -ItemType Directory stage\tools -Force | Out-Null
-          Copy-Item ..\backend\dist\MathBackend\* stage\backend -Recurse -Force
+          New-Item -ItemType Directory stage\backend -Force | Out-Null
+          Get-ChildItem ..\backend\dist\MathBackend -Force | ForEach-Object { Copy-Item -LiteralPath $_.FullName -Destination (Join-Path 'stage\backend' $_.Name) -Recurse -Force }
           Copy-Item dist\AI-Teaching-Assistant.exe stage -Force
           Copy-Item setup_pix2text.bat stage -Force
-          Invoke-WebRequest -Uri 'https://github.com/astral-sh/uv/releases/latest/download/uv-x86_64-pc-windows-msvc.zip' -OutFile "$env:TEMP\uv-win.zip"
+          Invoke-WebRequest -Uri 'https://github.com/astral-sh/uv/releases/download/0.12.15/uv-x86_64-pc-windows-msvc.zip' -OutFile "$env:TEMP\uv-win.zip"
+          if ((Get-FileHash "$env:TEMP\uv-win.zip" -Algorithm SHA256).Hash.ToLower() -ne '477bd99a84e34891f2bd4c9152ddeb74e971accccbc59c0f0301f11f08a32d46') { throw 'uv checksum mismatch' }
           Expand-Archive "$env:TEMP\uv-win.zip" "$env:TEMP\uv-win" -Force
           Copy-Item "$env:TEMP\uv-win\uv.exe" stage\tools -Force
-          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' app.iss
+          & 'C:\Program Files (x86)\Inno Setup 6\ISCC.exe' "/DMyAppVersion=$Version" app.iss
+          Compress-Archive -Path stage\* -DestinationPath ("output\AI-Teaching-Assistant-{0}-windows-x64.zip" -f $Version) -CompressionLevel Optimal -Force
+          Get-ChildItem output -File -Include 'Setup-*.exe', '*.zip' |
+            Get-FileHash -Algorithm SHA256 |
+            ForEach-Object { "{0}  {1}" -f $_.Hash.ToLower(), $_.Path } |
+            Set-Content ("output\SHA256SUMS-{0}.txt" -f $Version) -Encoding ASCII
         shell: pwsh
 
       - name: Upload installer
         uses: actions/upload-artifact@v4
         with:
           name: Setup-AI-Teaching-Assistant
-          path: packaging/output/Setup-*.exe
+          path: packaging/output/*
 
       - name: Publish to GitHub Release
         if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
-          files: packaging/output/Setup-*.exe
+          files: packaging/output/*
           generate_release_notes: true
           append_body: true
           body: |
             ## Cài đặt
 
             1. Tải `Setup-AI-Teaching-Assistant-*.exe` bên dưới.
-            2. Double-click → Next → Finish (không cần quyền admin).
-            3. Tick **Pix2Text** lúc cài nếu muốn nhận dạng công thức thật (~1-2 GB, cần mạng, mất 10-30 phút). Bỏ tick thì app dùng Mock, chạy lại Setup sau để bổ sung.
+            2. Hoặc tải gói `AI-Teaching-Assistant-*-windows-x64.zip`, giải nén và chạy `AI-Teaching-Assistant.exe`.
+            3. Double-click installer → Next → Finish (không cần quyền admin).
+            4. Tick **Pix2Text** lúc cài nếu muốn nhận dạng công thức thật (~1-2 GB, cần mạng, mất 10-30 phút). Bỏ tick thì app dùng Mock, chạy lại Setup sau để bổ sung.
 
             **Lưu ý Windows SmartScreen:** file chưa ký số nên Windows có thể hiện cảnh báo xanh → bấm *More info → Run anyway* (bình thường với phần mềm open-source chưa ký).

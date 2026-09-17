@@ -40,7 +40,7 @@ trải nghiệm giảng dạy trực quan, tương tác và **do giáo viên ki�
 
 ## Cài đặt 1 lần (ứng dụng)
 
-Tải file `Setup-AI-Teaching-Assistant-1.0.0.exe` trong mục Release rồi Next → Finish, không cần quyền admin, không cần cài Node/Python:
+Tải file `Setup-AI-Teaching-Assistant-1.0.0.exe` trong mục Release rồi Next → Finish, không cần quyền admin, không cần cài Node/Python. Release cũng có gói portable `.zip` cho Windows x64 và `SHA256SUMS-*.txt` để kiểm tra tính toàn vẹn:
 
 - Mở app từ Desktop/Start Menu → backend + web tự chạy, trình duyệt tự mở.
 - Tick **Pix2Text** lúc cài để có nhận dạng công thức thật (tải ~1-2 GB,
@@ -50,8 +50,8 @@ Tải file `Setup-AI-Teaching-Assistant-1.0.0.exe` trong mục Release rồi Nex
   trên popover AI của app.
 - Gỡ: Windows Settings → Apps → Uninstall (app đang chạy sẽ được nhắc tắt).
 
-> **Tự build bộ cài** từ mã nguồn: `powershell -ExecutionPolicy Bypass -File packaging\build.ps1`
-> (cần Node 20+, Python 3.11+, Inno Setup; ra file `packaging/output/Setup-*.exe`).
+> **Tự build bộ cài/portable** từ mã nguồn: `powershell -ExecutionPolicy Bypass -File packaging\build.ps1`
+> (cần Node 20+, Python 3.11+, Inno Setup; dependency lấy từ `backend/requirements.lock`; ra file `packaging/output/Setup-*.exe` và `.zip`).
 
 ## Cài đặt & chạy (từ mã nguồn)
 
@@ -70,6 +70,9 @@ cd Math_teacher
 # Từ thư mục gốc dự án
 powershell -ExecutionPolicy Bypass -File scripts\backend-start.ps1
 ```
+
+Nếu cài từ mã nguồn lần đầu, tạo `backend/.venv` và chạy `pip install -r requirements.txt`
+(hoặc `requirements.lock` để tái lập đúng môi trường CI) trước bước này.
 
 - Bật backend (`uvicorn --reload`, cửa sổ riêng) + tự bật Pix2Text kèm theo
 - Tắt: **Ctrl+C** ở cửa sổ backend → Pix2Text tự tắt ngay (watcher)
@@ -243,6 +246,9 @@ Trên máy Windows, nếu backend chưa được cài venv tại `backend/.venv`
 
 Mỗi lần push lên `main` hoặc mở PR, [GitHub Actions](.github/workflows/ci.yml)
 tự chạy toàn bộ test ở trên. Push tag `v*` sẽ tự tạo GitHub Release.
+
+Để kiểm tra nhanh trước khi nộp, chạy backend `pytest`, frontend `npm test` và
+`npm run build`; cả CI và bản build Windows đều dùng dependency lock đã commit.
 
 ## Những thay đổi
 

@@ -3,7 +3,7 @@
 ## Thong tin phien ban
 
 - Baseline: Version 1 tai commit `90a3823`.
-- Trang thai: dang phat trien trong working tree, chua commit.
+- Trang thai: da commit tai `8f64659`, phat hanh trong release `v1.0.0`.
 - Ngay ghi nhan: 2026-08-21.
 - Muc tieu: tang do an toan cua parser, do dung toan hoc va do tin cay cua
   du lieu Copilot ma khong thay doi y tuong san pham.

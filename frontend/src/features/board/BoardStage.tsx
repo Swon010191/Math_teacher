@@ -114,6 +114,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
   const [drawing, setDrawing] = useState<number[] | null>(null);
   const [marquee, setMarquee] = useState<Region | null>(null);
   const [panning, setPanning] = useState(false);
+  const [isSpaceHeld, setIsSpaceHeld] = useState(false);
   const [size, setSize] = useState({ width: 800, height: 600 });
   const dragStart = useRef<{ x: number; y: number } | null>(null);
   const pinchStart = useRef<{ distance: number; scale: number; x: number; y: number } | null>(null);
@@ -133,6 +134,31 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
     observer.observe(container);
     return () => observer.disconnect();
   }, [containerRef]);
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.code === 'Space' && !e.repeat) {
+        // Tránh scroll khi Space giữ để pan
+        if (document.activeElement?.tagName !== 'INPUT' && document.activeElement?.tagName !== 'TEXTAREA') {
+          e.preventDefault();
+          setIsSpaceHeld(true);
+        }
+      }
+    };
+    const onKeyUp = (e: KeyboardEvent) => {
+      if (e.code === 'Space') {
+        setIsSpaceHeld(false);
+        setPanning(false);
+        dragStart.current = null;
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    window.addEventListener('keyup', onKeyUp);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+      window.removeEventListener('keyup', onKeyUp);
+    };
+  }, []);
 
   const getPointerBoard = useCallback(() => {
     const stage = stageRef.current;
@@ -180,7 +206,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
 
   const onPointerDown = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
-      if (e.evt.button === 1) {
+      if (e.evt.button === 1 || isSpaceHeld) {
         e.evt.preventDefault();
         setPanning(true);
         dragStart.current = { x: e.evt.clientX, y: e.evt.clientY };
@@ -190,7 +216,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       const board = getPointerBoard();
       clickTargetId.current = e.target.id() || null;
 
-      if (tool === 'pan') {
+      if (tool === 'pan' || isSpaceHeld) {
         setPanning(true);
         dragStart.current = { x: e.evt.clientX, y: e.evt.clientY };
         return;
@@ -236,7 +262,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
 
   const onPointerMove = useCallback(
     (e: Konva.KonvaEventObject<PointerEvent>) => {
-      if (panning && dragStart.current) {
+      if ((panning || isSpaceHeld) && dragStart.current) {
         const dx = e.evt.clientX - dragStart.current.x;
         const dy = e.evt.clientY - dragStart.current.y;
         dragStart.current = { x: e.evt.clientX, y: e.evt.clientY };
@@ -260,7 +286,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
         });
       }
     },
-    [panning, tool, drawing, marquee, viewport, setViewport, getPointerBoard, updateObject],
+    [panning, isSpaceHeld, tool, drawing, marquee, viewport, setViewport, getPointerBoard, updateObject],
   );
 
   const onTouchMove = useCallback(
@@ -363,7 +389,7 @@ export function BoardStage({ containerRef, onRecognizeRegion, onAddText }: Board
       onPointerCancel={onPointerUp}
       onTouchMove={onTouchMove}
       onTouchEnd={onTouchEnd}
-      style={{ cursor: tool === 'pen' ? 'crosshair' : tool === 'select' ? 'default' : tool === 'pan' ? 'move' : 'pointer', touchAction: 'none' }}
+      style={{ cursor: isSpaceHeld ? 'grab' : tool === 'pen' ? 'crosshair' : tool === 'select' ? 'default' : tool === 'pan' ? 'move' : 'pointer', touchAction: 'none' }}
       x={viewport.x}
       y={viewport.y}
       scaleX={viewport.scale}

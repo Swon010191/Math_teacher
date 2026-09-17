@@ -7,6 +7,15 @@ dự án tuân thủ [Semantic Versioning](https://semver.org/lang/vi/).
 
 ## [Chưa phát hành]
 
+### Cải thiện độ tin cậy phát hành
+- Khóa dependency Python bằng `backend/requirements.lock` và dùng lock trong CI,
+  E2E, đóng gói Windows.
+- Hợp nhất release workflow, tạo thêm gói portable ZIP, cố định phiên bản và
+  checksum `uv`.
+- Đồng bộ metadata phiên bản `1.0.0` và bổ sung notices cho runtime/build tools.
+
+## [1.0.0] - 2026-09-15
+
 ### Đã thêm (Stage 1 - MVP)
 - **Kiến thức liên quan có trích nguồn**: API `POST /api/knowledge/related` suy
   chủ đề từ Math Engine, chỉ gọi Wikipedia Việt/Anh và Wikibooks Anh qua

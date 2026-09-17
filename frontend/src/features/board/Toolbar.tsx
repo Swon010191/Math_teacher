@@ -193,7 +193,7 @@ export function Toolbar({ onSave, onOpen, onExport, onImport, onClear, onTypedIn
             <span className="tool-label">Xóa bảng</span>
           </button>
         </div>
-        <div className="toolbar-hint">Di chuyển: kéo để dời bảng · Bút để vẽ · Chọn/Tẩy vùng: khoanh vùng để chọn hoặc xóa · Nhận dạng: khoanh vùng công thức · Lăn chuột để phóng to</div>
+        <div className="toolbar-hint">Giữ Space + kéo để dời bảng (hoặc chọn ✋ Di chuyển) · Bút để vẽ · Chọn/Tẩy vùng: khoanh vùng · Nhận dạng: khoanh vùng công thức · Lăn chuột để phóng to</div>
       </div>
       <div className="backend-status-wrap" ref={containerRef}>
         <button

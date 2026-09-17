@@ -12,6 +12,8 @@ export interface MathInputClassification {
 const RESERVED_NAMES = new Set([
   'abs', 'acos', 'asin', 'atan', 'ceil', 'cos', 'e', 'exp', 'floor', 'inf',
   'infinity', 'ln', 'log', 'max', 'min', 'oo', 'pi', 'sin', 'sqrt', 'tan',
+  'gamma', 'erf', 'erfc', 'zeta', 'besselj', 'integrate', 'integral', 'sum',
+  'product', 'limit', 'derivative', 'matrix',
 ]);
 
 export function extractVariables(expression: string): string[] {
